@@ -1,0 +1,10 @@
+{
+  "expo": {
+    "name": "RootCare",
+    "slug": "rootcare",
+    "version": "1.0.0",
+    "android": {
+      "package": "com.rootcare.app"
+    }
+  }
+}
