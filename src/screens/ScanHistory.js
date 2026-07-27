@@ -84,6 +84,7 @@ const HistoryScreen = ({ navigation }) => {
     },
   ]);
 
+  // Get filtered data based on active tab
   const getFilteredData = () => {
     return historyData.filter(item => 
       activeTab === 'active' ? !item.isArchived : item.isArchived
@@ -92,70 +93,60 @@ const HistoryScreen = ({ navigation }) => {
 
   const filteredData = getFilteredData();
 
+  // Handle archive - NO ALERT CONFIRMATION (for testing)
   const handleArchive = (id) => {
-    Alert.alert(
-      'Archive Scan',
-      'Move this scan to archive?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Archive', 
-          style: 'default',
-          onPress: () => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            
-            const newData = historyData.map(item => {
-              if (item.id === id) {
-                return { 
-                  ...item, 
-                  isArchived: true, 
-                  archivedAt: new Date().toISOString() 
-                };
-              }
-              return item;
-            });
-            
-            setHistoryData(newData);
-            
-            Alert.alert('✅ Archived', 'Scan has been moved to archive.');
-          }
-        }
-      ]
-    );
+   
+    
+    // Haptic feedback
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    
+    // Update state directly
+    const newData = historyData.map(item => {
+      if (item.id === id) {
+        
+        return { 
+          ...item, 
+          isArchived: true, 
+          archivedAt: new Date().toISOString() 
+        };
+      }
+      return item;
+    });
+    
+   
+    
+    setHistoryData(newData);
+    
+   
   };
 
   const handleRestore = (id) => {
-    Alert.alert(
-      'Restore Scan',
-      'Move this scan back to active?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Restore', 
-          style: 'default',
-          onPress: () => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            
-            const newData = historyData.map(item => {
-              if (item.id === id) {
-                return { 
-                  ...item, 
-                  isArchived: false, 
-                  archivedAt: null 
-                };
-              }
-              return item;
-            });
-            
-            setHistoryData(newData);
-            
-            Alert.alert('✅ Restored', 'Scan has been restored to active.');
-          }
-        }
-      ]
-    );
+    
+    
+    // Haptic feedback
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    
+    // Update state directly
+    const newData = historyData.map(item => {
+      if (item.id === id) {
+        
+        return { 
+          ...item, 
+          isArchived: false, 
+          archivedAt: null 
+        };
+      }
+      return item;
+    });
+    
+ 
+    
+    setHistoryData(newData);
+    
+  
   };
 
+  // Render each history item
   const renderHistoryItem = ({ item }) => {
     const isArchived = item.isArchived;
 
@@ -185,7 +176,9 @@ const HistoryScreen = ({ navigation }) => {
 
             <TouchableOpacity 
               style={styles.actionButton}
-              onPress={() => isArchived ? handleRestore(item.id) : handleArchive(item.id)}
+              onPress={() => {
+                isArchived ? handleRestore(item.id) : handleArchive(item.id);
+              }}
               activeOpacity={0.6}
             >
               <Ionicons 
@@ -202,18 +195,22 @@ const HistoryScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerText}>SCAN HISTORY</Text>
         <Text style={styles.countText}>{filteredData.length} items</Text>
       </View>
 
+      {/* Toggle Buttons */}
       <View style={styles.toggleContainer}>
         <TouchableOpacity
           style={[
             styles.toggleButton,
             activeTab === 'active' && styles.toggleButtonActive,
           ]}
-          onPress={() => setActiveTab('active')}
+          onPress={() => {
+            setActiveTab('active');
+          }}
           activeOpacity={0.7}
         >
           <Text
@@ -231,7 +228,9 @@ const HistoryScreen = ({ navigation }) => {
             styles.toggleButton,
             activeTab === 'archived' && styles.toggleButtonActive,
           ]}
-          onPress={() => setActiveTab('archived')}
+          onPress={() => {
+            setActiveTab('archived');
+          }}
           activeOpacity={0.7}
         >
           <Text
@@ -245,6 +244,7 @@ const HistoryScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
+      {/* History List */}
       <FlatList
         data={filteredData}
         renderItem={renderHistoryItem}
