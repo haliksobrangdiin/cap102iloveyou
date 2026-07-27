@@ -5,14 +5,7 @@ import HomeScreen from '../screens/HomeScreen';
 import ChatbotScreen from '../screens/ChatbotScreen';
 import ScannerStack from './ScannerStack';
 import HistoryScreen from '../screens/ScanHistory';
-// If you don't have SettingsScreen yet, keep the placeholder
-import { View, Text } from 'react-native';
-
-const SettingsScreen = () => (
-  <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-    <Text>Settings - coming soon</Text>
-  </View>
-);
+import SettingsScreen from '../screens/SettingsScreen'; // ← Keep only this import
 
 const Tab = createBottomTabNavigator();
 

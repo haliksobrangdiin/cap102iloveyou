@@ -1,5 +1,15 @@
 ﻿import React from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Platform,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 
 const ResultScreen = ({ route, navigation }) => {
   const { imageUri } = route.params || {};
@@ -12,126 +22,219 @@ const ResultScreen = ({ route, navigation }) => {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>🔬 Analysis Results</Text>
-
-      {imageUri && (
-        <Image source={{ uri: imageUri }} style={styles.image} />
-      )}
-
-      <View style={styles.resultCard}>
-        <Text style={styles.diseaseName}>{diseaseData.name}</Text>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📋 Description</Text>
-          <Text style={styles.sectionText}>{diseaseData.description}</Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>💊 Treatment</Text>
-          <Text style={styles.sectionText}>{diseaseData.treatment}</Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🛡️ Prevention</Text>
-          <Text style={styles.sectionText}>{diseaseData.prevention}</Text>
-        </View>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+        <Text style={styles.headerText}>ANALYSIS RESULTS</Text>
+        <View style={styles.headerRight} />
       </View>
 
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity 
-          style={[styles.button, styles.scanButton]} 
-          onPress={() => navigation.navigate('ScannerMain')}
-        >
-          <Text style={styles.buttonText}>🔄 Scan Another</Text>
-        </TouchableOpacity>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {imageUri && (
+          <View style={styles.imageContainer}>
+            <Image source={{ uri: imageUri }} style={styles.image} />
+          </View>
+        )}
 
-        <TouchableOpacity 
-          style={[styles.button, styles.homeButton]} 
-          onPress={() => navigation.navigate('Home')}
-        >
-          <Text style={styles.buttonText}>🏠 Home</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+        <View style={styles.resultCard}>
+          <View style={styles.diseaseHeader}>
+            <Ionicons name="alert-circle" size={28} color="#C77A58" />
+            <Text style={styles.diseaseName}>{diseaseData.name}</Text>
+          </View>
+
+          <View style={styles.divider} />
+
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="document-text-outline" size={20} color="#C77A58" />
+              <Text style={styles.sectionTitle}>Description</Text>
+            </View>
+            <Text style={styles.sectionText}>{diseaseData.description}</Text>
+          </View>
+
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="medkit-outline" size={20} color="#C77A58" />
+              <Text style={styles.sectionTitle}>Treatment</Text>
+            </View>
+            <Text style={styles.sectionText}>{diseaseData.treatment}</Text>
+          </View>
+
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="shield-checkmark-outline" size={20} color="#C77A58" />
+              <Text style={styles.sectionTitle}>Prevention</Text>
+            </View>
+            <Text style={styles.sectionText}>{diseaseData.prevention}</Text>
+          </View>
+        </View>
+
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={[styles.button, styles.scanButton]}
+            onPress={() => navigation.navigate('Scanner')}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="scan-outline" size={20} color="#FFFFFF" />
+            <Text style={styles.buttonText}>Scan Another</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.button, styles.homeButton]}
+            onPress={() => navigation.navigate('Home')}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="home-outline" size={20} color="#FFFFFF" />
+            <Text style={styles.buttonText}>Home</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
+
+const HEADER_HEIGHT = 52;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    padding: 20,
+    backgroundColor: '#DCC8AC',
+    ...(Platform.OS === 'web' ? { height: '100vh', overflow: 'hidden' } : {}),
   },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#2e7d32',
+  header: {
+    width: '100%',
+    minHeight: HEADER_HEIGHT,
+    backgroundColor: '#C77A58',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  backButton: {
+    padding: 4,
+  },
+  headerText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 1,
+    flex: 1,
     textAlign: 'center',
-    marginTop: 20,
-    marginBottom: 20,
+  },
+  headerRight: {
+    width: 32,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    padding: 16,
+    paddingBottom: 20,
+  },
+  imageContainer: {
+    width: '100%',
+    height: 250,
+    backgroundColor: '#E4D3BB',
+    borderRadius: 15,
+    borderWidth: 2,
+    borderColor: '#C77A58',
+    overflow: 'hidden',
+    marginBottom: 16,
   },
   image: {
     width: '100%',
-    height: 300,
-    borderRadius: 15,
-    marginBottom: 20,
+    height: '100%',
     resizeMode: 'cover',
   },
   resultCard: {
-    backgroundColor: '#fff',
+    backgroundColor: '#E4D3BB',
     borderRadius: 15,
     padding: 20,
-    marginBottom: 20,
+    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
     elevation: 3,
   },
+  diseaseHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    marginBottom: 12,
+  },
   diseaseName: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#c62828',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#5C3D2E',
     textAlign: 'center',
-    marginBottom: 15,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: 'rgba(199, 122, 88, 0.3)',
+    marginBottom: 16,
   },
   section: {
-    marginBottom: 15,
+    marginBottom: 16,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2e7d32',
-    marginBottom: 5,
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#5C3D2E',
   },
   sectionText: {
-    fontSize: 16,
-    color: '#333',
-    lineHeight: 24,
+    fontSize: 14,
+    color: '#4A3A2A',
+    lineHeight: 22,
+    paddingLeft: 28,
   },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 30,
+    gap: 12,
   },
   button: {
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    width: '48%',
+    flexDirection: 'row',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    flex: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
   },
   scanButton: {
-    backgroundColor: '#1976d2',
+    backgroundColor: '#C77A58',
   },
   homeButton: {
-    backgroundColor: '#388e3c',
+    backgroundColor: '#8A7A66',
   },
   buttonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 14,
+    letterSpacing: 0.5,
   },
 });
 
