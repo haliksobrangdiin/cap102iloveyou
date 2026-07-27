@@ -1,4 +1,5 @@
-﻿import React from 'react';
+﻿// screens/ResultScreen.js
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -10,6 +11,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import Toast from 'react-native-toast-message';
 
 const ResultScreen = ({ route, navigation }) => {
   const { imageUri } = route.params || {};
@@ -21,9 +24,17 @@ const ResultScreen = ({ route, navigation }) => {
     prevention: 'Plant certified disease-free cuttings, practice crop rotation.',
   };
 
+  const saveResult = () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Toast.show({
+      type: 'success',
+      text1: 'Saved',
+      text2: 'Scan result has been saved to history.',
+    });
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton} 
@@ -81,8 +92,17 @@ const ResultScreen = ({ route, navigation }) => {
 
         <View style={styles.buttonContainer}>
           <TouchableOpacity
+            style={[styles.button, styles.saveButton]}
+            onPress={saveResult}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="bookmark-outline" size={20} color="#FFFFFF" />
+            <Text style={styles.buttonText}>Save</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
             style={[styles.button, styles.scanButton]}
-            onPress={() => navigation.navigate('Scanner')}
+            onPress={() => navigation.goBack()}
             activeOpacity={0.85}
           >
             <Ionicons name="scan-outline" size={20} color="#FFFFFF" />
@@ -207,22 +227,25 @@ const styles = StyleSheet.create({
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: 8,
   },
   button: {
     flexDirection: 'row',
     paddingVertical: 14,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
     flex: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 4,
     elevation: 4,
+  },
+  saveButton: {
+    backgroundColor: '#4CAF50',
   },
   scanButton: {
     backgroundColor: '#C77A58',
@@ -233,8 +256,8 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#FFFFFF',
     fontWeight: '600',
-    fontSize: 14,
-    letterSpacing: 0.5,
+    fontSize: 12,
+    letterSpacing: 0.3,
   },
 });
 

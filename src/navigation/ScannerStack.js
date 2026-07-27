@@ -5,8 +5,6 @@ import ResultScreen from '../screens/ResultScreen';
 
 const Stack = createStackNavigator();
 
-// Nested inside the "Scanner" tab so ScannerScreen -> ResultScreen can push
-// on top of the tab bar, while Home/Chatbot/History/Settings stay flat tabs.
 export default function ScannerStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>

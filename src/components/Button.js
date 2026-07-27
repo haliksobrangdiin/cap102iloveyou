@@ -1,56 +1,134 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet, Platform } from 'react-native';
 import { colors } from '../styles/colors';
 
-const Button = ({ title, onPress, type = 'primary' }) => {
+const Button = ({ 
+  title, 
+  onPress, 
+  type = 'primary', 
+  icon, 
+  disabled = false,
+  style = {},
+  textStyle = {},
+}) => {
   return (
     <TouchableOpacity
-      style={[styles.button, styles[type]]}
+      style={[styles.button, styles[type], style, disabled && styles.disabled]}
       onPress={onPress}
       activeOpacity={0.85}
+      disabled={disabled}
     >
-      <Text style={[styles.text, styles[`${type}Text`]]}>{title}</Text>
+      {icon && icon}
+      <Text style={[styles.text, styles[`${type}Text`], textStyle]}>
+        {title}
+      </Text>
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   button: {
-    paddingVertical: 15,
-    paddingHorizontal: 25,
-    borderRadius: 10,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
   },
+  // Primary button - Terracotta (matches header)
   primary: {
-    backgroundColor: '#2e7d32',
+    backgroundColor: '#C77A58',
   },
+  primaryText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  // Secondary button - Dark beige
   secondary: {
-    backgroundColor: '#1976d2',
+    backgroundColor: '#8A7A66',
   },
+  secondaryText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
+  // Success button - Green
+  success: {
+    backgroundColor: '#4CAF50',
+  },
+  successText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  // Danger button - Red
   danger: {
     backgroundColor: '#c62828',
   },
-  // Pill-shaped orange button matching the onboarding/reference design
+  dangerText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  // Outline button - Terracotta border
+  outline: {
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: '#C77A58',
+  },
+  outlineText: {
+    color: '#C77A58',
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
+  // Ghost button - No background
+  ghost: {
+    backgroundColor: 'transparent',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  ghostText: {
+    color: '#C77A58',
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
+  // Onboarding button - Pill shape with accent color
   onboarding: {
-    backgroundColor: colors.onboardingAccent,
+    backgroundColor: '#B86D4F',
     paddingVertical: 16,
     paddingHorizontal: 60,
     borderRadius: 30,
     width: '100%',
-    shadowColor: colors.onboardingAccentDark,
+    shadowColor: '#B86D4F',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 5,
   },
-  text: {
+  onboardingText: {
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    letterSpacing: 1.2,
   },
-  primaryText: { color: '#fff' },
-  secondaryText: { color: '#fff' },
-  dangerText: { color: '#fff' },
-  onboardingText: { color: colors.onboardingText, letterSpacing: 1.5 },
+  // Disabled state
+  disabled: {
+    opacity: 0.5,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  text: {
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
 });
 
 export default Button;

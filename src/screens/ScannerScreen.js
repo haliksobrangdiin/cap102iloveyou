@@ -1,4 +1,5 @@
-﻿import React, { useState } from 'react';
+﻿// screens/ScannerScreen.js
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -11,14 +12,21 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as Haptics from 'expo-haptics';
+import Toast from 'react-native-toast-message';
 
 const ScannerScreen = ({ navigation }) => {
   const [image, setImage] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Please grant gallery permissions to upload images.');
+      Toast.show({
+        type: 'error',
+        text1: 'Permission Denied',
+        text2: 'Please grant gallery permissions to upload images.',
+      });
       return;
     }
 
@@ -30,13 +38,23 @@ const ScannerScreen = ({ navigation }) => {
 
     if (!result.canceled) {
       setImage(result.assets[0].uri);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Toast.show({
+        type: 'success',
+        text1: 'Image Uploaded',
+        text2: 'Your image is ready for analysis!',
+      });
     }
   };
 
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Please grant camera permissions to take photos.');
+      Toast.show({
+        type: 'error',
+        text1: 'Permission Denied',
+        text2: 'Please grant camera permissions to take photos.',
+      });
       return;
     }
 
@@ -47,15 +65,39 @@ const ScannerScreen = ({ navigation }) => {
 
     if (!result.canceled) {
       setImage(result.assets[0].uri);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Toast.show({
+        type: 'success',
+        text1: 'Photo Captured',
+        text2: 'Your photo is ready for analysis!',
+      });
     }
   };
 
-  const analyzeImage = () => {
+  const analyzeImage = async () => {
     if (!image) {
-      Alert.alert('No Image', 'Please take a photo or upload an image first.');
+      Toast.show({
+        type: 'error',
+        text1: 'No Image',
+        text2: 'Please take a photo or upload an image first.',
+      });
       return;
     }
-    navigation.navigate('Result', { imageUri: image });
+
+    setLoading(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    // Simulate analysis (replace with actual API call)
+    setTimeout(() => {
+      setLoading(false);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Toast.show({
+        type: 'success',
+        text1: 'Analysis Complete',
+        text2: 'Your leaf has been analyzed successfully!',
+      });
+      navigation.navigate('Result', { imageUri: image });
+    }, 2000);
   };
 
   return (
@@ -79,25 +121,44 @@ const ScannerScreen = ({ navigation }) => {
           )}
         </View>
 
+        {loading && (
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Analyzing your leaf...</Text>
+          </View>
+        )}
+
         <View style={styles.buttonContainer}>
-          <TouchableOpacity style={[styles.button, styles.cameraButton]} onPress={takePhoto} activeOpacity={0.85}>
+          <TouchableOpacity 
+            style={[styles.button, styles.cameraButton]} 
+            onPress={takePhoto} 
+            activeOpacity={0.85}
+            disabled={loading}
+          >
             <Ionicons name="camera-outline" size={22} color="#FFFFFF" />
             <Text style={styles.buttonText}>Take Photo</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.button, styles.galleryButton]} onPress={pickImage} activeOpacity={0.85}>
+          <TouchableOpacity 
+            style={[styles.button, styles.galleryButton]} 
+            onPress={pickImage} 
+            activeOpacity={0.85}
+            disabled={loading}
+          >
             <Ionicons name="images-outline" size={22} color="#FFFFFF" />
             <Text style={styles.buttonText}>Upload Image</Text>
           </TouchableOpacity>
         </View>
 
         <TouchableOpacity 
-          style={[styles.button, styles.analyzeButton]} 
+          style={[styles.button, styles.analyzeButton, loading && styles.disabledButton]} 
           onPress={analyzeImage}
           activeOpacity={0.85}
+          disabled={loading}
         >
           <Ionicons name="scan-outline" size={24} color="#FFFFFF" />
-          <Text style={styles.analyzeButtonText}>Analyze Leaf</Text>
+          <Text style={styles.analyzeButtonText}>
+            {loading ? 'Analyzing...' : 'Analyze Leaf'}
+          </Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -166,6 +227,15 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontWeight: '500',
   },
+  loadingContainer: {
+    paddingVertical: 8,
+    marginBottom: 12,
+  },
+  loadingText: {
+    color: '#C77A58',
+    fontSize: 14,
+    fontWeight: '600',
+  },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -209,6 +279,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 5,
+  },
+  disabledButton: {
+    opacity: 0.6,
   },
   buttonText: {
     color: '#FFFFFF',
