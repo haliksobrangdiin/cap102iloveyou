@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
   },
   messagesList: {
     padding: 16,
-    paddingBottom: 20, // Changed from BOTTOM_BAR_HEIGHT + 20
+    paddingBottom: 20, 
     flexGrow: 1,
   },
   messageContainer: {
