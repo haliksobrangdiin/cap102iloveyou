@@ -30,13 +30,14 @@ const HistoryScreen = ({ navigation }) => {
   const [sortBy, setSortBy] = useState('newest');
   const [isExporting, setIsExporting] = useState(false);
   const [noteText, setNoteText] = useState('');
+  const [viewMode, setViewMode] = useState('list'); // 'list' | 'detailed'
   
   const [historyData, setHistoryData] = useState([
     {
       id: '1',
       title: 'Cassava Mosaic Disease',
       subtitle: 'Viral Infection Detected',
-      detail: 'Confidence: 94.7% | Severity: High',
+      detail: 'Severity: High',
       extra: 'Scanned: Jan 15, 2024 • 2:30 PM',
       image: require('../assets/CassavaMosaic.png'),
       isArchived: false,
@@ -44,7 +45,7 @@ const HistoryScreen = ({ navigation }) => {
       createdAt: '2024-01-15T14:30:00',
       diseaseType: 'Viral',
       severity: 'High',
-      confidence: 94.7,
+      accuracy: 94.7,
       description: 'A viral disease that causes yellow mosaic patterns on leaves. Infected plants show stunted growth and reduced yield.',
       treatment: 'Remove infected plants immediately. Use resistant varieties and control whitefly vectors with appropriate pesticides.',
       prevention: 'Plant certified disease-free cuttings. Practice crop rotation and maintain proper field sanitation.',
@@ -55,7 +56,7 @@ const HistoryScreen = ({ navigation }) => {
       id: '2',
       title: 'Brown Spot Disease',
       subtitle: 'Fungal Infection Detected',
-      detail: 'Confidence: 87.2% | Severity: Medium',
+      detail: 'Severity: Medium',
       extra: 'Scanned: Jan 14, 2024 • 11:15 AM',
       image: require('../assets/BrownSpot.png'),
       isArchived: false,
@@ -63,7 +64,7 @@ const HistoryScreen = ({ navigation }) => {
       createdAt: '2024-01-14T11:15:00',
       diseaseType: 'Fungal',
       severity: 'Medium',
-      confidence: 87.2,
+      accuracy: 87.2,
       description: 'Fungal disease causing brown spots on leaves. Lesions start as small water-soaked spots that enlarge and turn brown.',
       treatment: 'Apply appropriate fungicides. Ensure proper drainage and avoid overhead irrigation.',
       prevention: 'Practice crop rotation. Use resistant varieties and maintain proper plant spacing.',
@@ -74,7 +75,7 @@ const HistoryScreen = ({ navigation }) => {
       id: '3',
       title: 'Cassava Green Mite',
       subtitle: 'Pest Infestation Detected',
-      detail: 'Confidence: 92.1% | Severity: High',
+      detail: 'Severity: High',
       extra: 'Scanned: Jan 12, 2024 • 9:45 AM',
       image: require('../assets/GreenMite.png'),
       isArchived: false,
@@ -82,7 +83,7 @@ const HistoryScreen = ({ navigation }) => {
       createdAt: '2024-01-12T09:45:00',
       diseaseType: 'Pest',
       severity: 'High',
-      confidence: 92.1,
+      accuracy: 92.1,
       description: 'Pest infestation causing leaf damage and stunted growth. Green mites feed on plant sap, causing yellowing and curling.',
       treatment: 'Apply appropriate miticides or pesticides. Introduce natural predators like predatory mites.',
       prevention: 'Regular monitoring of fields. Use resistant varieties and maintain good field hygiene.',
@@ -93,7 +94,7 @@ const HistoryScreen = ({ navigation }) => {
       id: '4',
       title: 'Healthy Cassava Leaf',
       subtitle: 'No Disease Detected',
-      detail: 'Confidence: 98.3% | Status: Healthy',
+      detail: 'Status: Healthy',
       extra: 'Scanned: Jan 10, 2024 • 4:20 PM',
       image: require('../assets/HealthyLeaf.png'),
       isArchived: false,
@@ -101,7 +102,7 @@ const HistoryScreen = ({ navigation }) => {
       createdAt: '2024-01-10T16:20:00',
       diseaseType: 'Healthy',
       severity: 'None',
-      confidence: 98.3,
+      accuracy: 98.3,
       description: 'The leaf appears healthy with no signs of disease. Continue maintaining good agricultural practices.',
       treatment: 'Continue current maintenance practices. Regular monitoring is recommended.',
       prevention: 'Maintain proper farming practices. Regular inspection and early detection.',
@@ -112,7 +113,7 @@ const HistoryScreen = ({ navigation }) => {
       id: '5',
       title: 'Cassava Bacterial Blight',
       subtitle: 'Bacterial Infection Detected',
-      detail: 'Confidence: 89.5% | Severity: Medium',
+      detail: 'Severity: Medium',
       extra: 'Scanned: Jan 8, 2024 • 10:00 AM',
       image: require('../assets/BacterialBlight.png'),
       isArchived: false,
@@ -120,7 +121,7 @@ const HistoryScreen = ({ navigation }) => {
       createdAt: '2024-01-08T10:00:00',
       diseaseType: 'Bacterial',
       severity: 'Medium',
-      confidence: 89.5,
+      accuracy: 89.5,
       description: 'Bacterial infection causing blight on leaves and stems. Angular water-soaked lesions that turn brown and necrotic.',
       treatment: 'Remove infected plants. Apply copper-based bactericides and maintain proper field hygiene.',
       prevention: 'Use disease-free planting material. Practice crop rotation and avoid overhead irrigation.',
@@ -131,7 +132,7 @@ const HistoryScreen = ({ navigation }) => {
       id: '6',
       title: 'Cassava Anthracnose',
       subtitle: 'Fungal Disease Detected',
-      detail: 'Confidence: 85.9% | Severity: Low',
+      detail: 'Severity: Low',
       extra: 'Scanned: Jan 5, 2024 • 1:30 PM',
       image: require('../assets/Anthracnose.png'),
       isArchived: false,
@@ -139,7 +140,7 @@ const HistoryScreen = ({ navigation }) => {
       createdAt: '2024-01-05T13:30:00',
       diseaseType: 'Fungal',
       severity: 'Low',
-      confidence: 85.9,
+      accuracy: 85.9,
       description: 'Fungal disease causing lesions on leaves and stems. Small brown spots that enlarge and develop dark margins.',
       treatment: 'Apply appropriate fungicides. Improve air circulation and maintain proper drainage.',
       prevention: 'Avoid overhead irrigation. Practice crop rotation and use resistant varieties.',
@@ -165,8 +166,8 @@ const HistoryScreen = ({ navigation }) => {
       filtered.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
     } else if (sortBy === 'name') {
       filtered.sort((a, b) => a.title.localeCompare(b.title));
-    } else if (sortBy === 'confidence') {
-      filtered.sort((a, b) => b.confidence - a.confidence);
+    } else if (sortBy === 'accuracy') {
+      filtered.sort((a, b) => b.accuracy - a.accuracy);
     }
 
     return filtered;
@@ -174,7 +175,6 @@ const HistoryScreen = ({ navigation }) => {
 
   const filteredData = getFilteredData();
 
-  // Generate report content
   const generateReportContent = (item) => {
     return `
 ============================================
@@ -185,7 +185,7 @@ DISEASE INFORMATION
 -------------------
 Disease: ${item.title}
 Type: ${item.diseaseType}
-Confidence: ${item.confidence}%
+Accuracy: ${item.accuracy}%
 Severity: ${item.severity}
 
 DESCRIPTION
@@ -219,7 +219,6 @@ Generated by RootCare - Cassava Disease Detection App
     `;
   };
 
-  // Web download fallback
   const downloadOnWeb = (content, fileName) => {
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
@@ -232,7 +231,6 @@ Generated by RootCare - Cassava Disease Detection App
     URL.revokeObjectURL(url);
   };
 
-  // Main export function - works on both mobile and web
   const exportReport = async (item) => {
     try {
       setIsExporting(true);
@@ -241,16 +239,13 @@ Generated by RootCare - Cassava Disease Detection App
       const reportContent = generateReportContent(item);
       const fileName = `RootCare_Report_${item.title.replace(/\s/g, '_')}_${Date.now()}.txt`;
 
-      // Check if running on web
       if (Platform.OS === 'web') {
-        // Web fallback - download directly
         downloadOnWeb(reportContent, fileName);
         Alert.alert('✅ Downloaded', 'Your report has been downloaded successfully!');
         setIsExporting(false);
         return;
       }
 
-      // Mobile - use expo-file-system
       const filePath = `${FileSystem.documentDirectory}${fileName}`;
       await FileSystem.writeAsStringAsync(filePath, reportContent);
 
@@ -393,6 +388,210 @@ Generated by RootCare - Cassava Disease Detection App
     }
   };
 
+  const getAccuracyColor = (accuracy) => {
+    if (accuracy >= 90) return styles.accuracyHigh;
+    if (accuracy >= 70) return styles.accuracyMedium;
+    return styles.accuracyLow;
+  };
+
+  // Get date key for grouping
+  const getDateKey = (item) => {
+    const date = new Date(item.createdAt);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    if (date.toDateString() === today.toDateString()) {
+      return 'Today';
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return 'Yesterday';
+    } else {
+      return date.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric',
+        year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined
+      });
+    }
+  };
+
+  // Render section header for date grouping
+  const renderSectionHeader = (dateKey) => (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionHeaderText}>{dateKey}</Text>
+      <View style={styles.sectionHeaderLine} />
+    </View>
+  );
+
+  // Render List View Item
+  const renderListItem = ({ item }) => {
+    const isArchived = item.isArchived;
+
+    return (
+      <TouchableOpacity 
+        style={styles.cardWrapper}
+        onPress={() => handleViewDetails(item)}
+        activeOpacity={0.7}
+      >
+        <View style={[styles.historyCard, isArchived && styles.archivedCard]}>
+          <View style={styles.cardRow}>
+            <View style={styles.imageContainer}>
+              <Image source={item.image} style={styles.thumbnail} resizeMode="cover" />
+            </View>
+            
+            <View style={styles.historyContent}>
+              <View style={styles.titleRow}>
+                <Text style={styles.historyTitle}>{item.title}</Text>
+                {isArchived && (
+                  <View style={styles.archivedBadge}>
+                    <Text style={styles.archivedBadgeText}>ARCHIVED</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={styles.historySubtitle}>{item.subtitle}</Text>
+              
+              <View style={styles.detailRow}>
+                <View style={styles.accuracyContainer}>
+                  <View style={styles.accuracyBarTrack}>
+                    <View 
+                      style={[
+                        styles.accuracyBarFill, 
+                        { width: `${item.accuracy}%` },
+                        getAccuracyColor(item.accuracy)
+                      ]} 
+                    />
+                  </View>
+                  <Text style={styles.accuracyText}>{item.accuracy}%</Text>
+                </View>
+                <View style={[styles.typeBadge, getTypeBadgeStyle(item.diseaseType)]}>
+                  <Text style={styles.typeBadgeText}>{item.diseaseType}</Text>
+                </View>
+              </View>
+              
+              <View style={styles.extraRow}>
+                <Text style={styles.historyExtra}>
+                  {isArchived ? `Archived: ${new Date(item.archivedAt).toLocaleDateString()}` : item.extra}
+                </Text>
+                {item.notes ? (
+                  <Ionicons name="document-text-outline" size={12} color="#C77A58" />
+                ) : null}
+              </View>
+            </View>
+
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => isArchived ? handleRestore(item.id) : handleArchive(item.id)}
+              activeOpacity={0.6}
+            >
+              <Ionicons 
+                name={isArchived ? 'refresh-outline' : 'archive-outline'} 
+                size={22} 
+                color={isArchived ? '#4CAF50' : '#C77A58'} 
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  // Render Detailed Card Item
+  const renderDetailedItem = ({ item }) => {
+    const isArchived = item.isArchived;
+
+    return (
+      <TouchableOpacity 
+        style={styles.detailedCardWrapper}
+        onPress={() => handleViewDetails(item)}
+        activeOpacity={0.7}
+      >
+        <View style={[styles.detailedCard, isArchived && styles.archivedCard]}>
+          <Image source={item.image} style={styles.detailedImage} resizeMode="cover" />
+          <View style={styles.detailedContent}>
+            <View style={styles.detailedHeader}>
+              <Text style={styles.detailedTitle}>{item.title}</Text>
+              {isArchived && (
+                <View style={styles.archivedBadge}>
+                  <Text style={styles.archivedBadgeText}>ARCHIVED</Text>
+                </View>
+              )}
+            </View>
+            <Text style={styles.detailedSubtitle}>{item.subtitle}</Text>
+            <Text style={styles.detailedDescription} numberOfLines={2}>
+              {item.description}
+            </Text>
+            <View style={styles.detailedFooter}>
+              <View style={styles.detailedStat}>
+                <Text style={styles.detailedStatLabel}>Accuracy</Text>
+                <View style={styles.detailedAccuracyBar}>
+                  <View style={styles.accuracyBarTrack}>
+                    <View 
+                      style={[
+                        styles.accuracyBarFill, 
+                        { width: `${item.accuracy}%` },
+                        getAccuracyColor(item.accuracy)
+                      ]} 
+                    />
+                  </View>
+                  <Text style={styles.detailedStatValue}>{item.accuracy}%</Text>
+                </View>
+              </View>
+              <View style={styles.detailedStat}>
+                <Text style={styles.detailedStatLabel}>Severity</Text>
+                <Text style={[styles.detailedStatValue, { color: getSeverityColor(item.severity) }]}>
+                  {item.severity}
+                </Text>
+              </View>
+              <View style={styles.detailedStat}>
+                <Text style={styles.detailedStatLabel}>Date</Text>
+                <Text style={styles.detailedStatValue}>
+                  {new Date(item.createdAt).toLocaleDateString()}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.detailedActions}>
+              <View style={[styles.typeBadge, getTypeBadgeStyle(item.diseaseType)]}>
+                <Text style={styles.typeBadgeText}>{item.diseaseType}</Text>
+              </View>
+              <TouchableOpacity 
+                style={styles.detailedActionButton}
+                onPress={() => isArchived ? handleRestore(item.id) : handleArchive(item.id)}
+              >
+                <Ionicons 
+                  name={isArchived ? 'refresh-outline' : 'archive-outline'} 
+                  size={18} 
+                  color={isArchived ? '#4CAF50' : '#C77A58'} 
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  // Main render function with date grouping
+  const renderItem = ({ item, index }) => {
+    // Check if this is the first item of a new date group
+    const currentDateKey = getDateKey(item);
+    let showHeader = false;
+    
+    if (index === 0) {
+      showHeader = true;
+    } else {
+      const previousItem = filteredData[index - 1];
+      const prevDateKey = getDateKey(previousItem);
+      showHeader = currentDateKey !== prevDateKey;
+    }
+
+    return (
+      <View>
+        {showHeader && renderSectionHeader(currentDateKey)}
+        {viewMode === 'list' && renderListItem({ item })}
+        {viewMode === 'detailed' && renderDetailedItem({ item })}
+      </View>
+    );
+  };
+
   const renderNotesModal = () => {
     if (!selectedItem) return null;
 
@@ -501,8 +700,8 @@ Generated by RootCare - Cassava Disease Detection App
 
               <View style={styles.detailStatsRow}>
                 <View style={styles.detailStat}>
-                  <Text style={styles.detailStatValue}>{selectedItem.confidence}%</Text>
-                  <Text style={styles.detailStatLabel}>Confidence</Text>
+                  <Text style={styles.detailStatValue}>{selectedItem.accuracy}%</Text>
+                  <Text style={styles.detailStatLabel}>Accuracy</Text>
                 </View>
                 <View style={styles.detailStatDivider} />
                 <View style={styles.detailStat}>
@@ -627,7 +826,7 @@ Generated by RootCare - Cassava Disease Detection App
                 { id: 'newest', label: 'Newest First' },
                 { id: 'oldest', label: 'Oldest First' },
                 { id: 'name', label: 'Alphabetical' },
-                { id: 'confidence', label: 'Confidence' },
+                { id: 'accuracy', label: 'Accuracy' },
               ].map((option) => (
                 <TouchableOpacity
                   key={option.id}
@@ -667,74 +866,32 @@ Generated by RootCare - Cassava Disease Detection App
     </Modal>
   );
 
-  const renderHistoryItem = ({ item }) => {
-    const isArchived = item.isArchived;
-
-    return (
-      <TouchableOpacity 
-        style={styles.cardWrapper}
-        onPress={() => handleViewDetails(item)}
-        activeOpacity={0.7}
-      >
-        <View style={[styles.historyCard, isArchived && styles.archivedCard]}>
-          <View style={styles.cardRow}>
-            <View style={styles.imageContainer}>
-              <Image source={item.image} style={styles.thumbnail} resizeMode="cover" />
-            </View>
-            
-            <View style={styles.historyContent}>
-              <View style={styles.titleRow}>
-                <Text style={styles.historyTitle}>{item.title}</Text>
-                {isArchived && (
-                  <View style={styles.archivedBadge}>
-                    <Text style={styles.archivedBadgeText}>ARCHIVED</Text>
-                  </View>
-                )}
-              </View>
-              <Text style={styles.historySubtitle}>{item.subtitle}</Text>
-              <View style={styles.detailRow}>
-                <Text style={styles.historyDetail}>{item.detail}</Text>
-                <View style={[styles.typeBadge, getTypeBadgeStyle(item.diseaseType)]}>
-                  <Text style={styles.typeBadgeText}>{item.diseaseType}</Text>
-                </View>
-              </View>
-              <View style={styles.extraRow}>
-                <Text style={styles.historyExtra}>
-                  {isArchived ? `Archived: ${new Date(item.archivedAt).toLocaleDateString()}` : item.extra}
-                </Text>
-                {item.notes ? (
-                  <Ionicons name="document-text-outline" size={12} color="#C77A58" />
-                ) : null}
-              </View>
-            </View>
-
-            <TouchableOpacity 
-              style={styles.actionButton}
-              onPress={() => isArchived ? handleRestore(item.id) : handleArchive(item.id)}
-              activeOpacity={0.6}
-            >
-              <Ionicons 
-                name={isArchived ? 'refresh-outline' : 'archive-outline'} 
-                size={22} 
-                color={isArchived ? '#4CAF50' : '#C77A58'} 
-              />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </TouchableOpacity>
-    );
-  };
-
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.headerText}>SCAN HISTORY</Text>
-        <TouchableOpacity 
-          style={styles.filterButton}
-          onPress={() => setFilterModalVisible(true)}
-        >
-          <Ionicons name="options-outline" size={24} color="#FFFFFF" />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity 
+            style={styles.viewModeButton}
+            onPress={() => {
+              const nextMode = viewMode === 'list' ? 'detailed' : 'list';
+              setViewMode(nextMode);
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }}
+          >
+            <Ionicons 
+              name={viewMode === 'list' ? 'list-outline' : 'apps-outline'} 
+              size={22} 
+              color="#FFFFFF" 
+            />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.filterButton}
+            onPress={() => setFilterModalVisible(true)}
+          >
+            <Ionicons name="options-outline" size={22} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.toggleContainer}>
@@ -775,40 +932,42 @@ Generated by RootCare - Cassava Disease Detection App
         </TouchableOpacity>
       </View>
 
-      <FlatList
-        data={filteredData}
-        renderItem={renderHistoryItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        ListHeaderComponent={
-          filteredData.length > 0 ? (
+      {filteredData.length > 0 ? (
+        <FlatList
+          data={filteredData}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          key={viewMode} // Force re-render when view mode changes
+          ListHeaderComponent={
             <View style={styles.filterInfo}>
               <Text style={styles.filterInfoText}>
                 {selectedFilter !== 'All' ? `Filter: ${selectedFilter} • ` : ''}
-                Sort: {sortBy === 'newest' ? 'Newest' : sortBy === 'oldest' ? 'Oldest' : sortBy === 'name' ? 'A-Z' : 'Confidence'}
+                Sort: {sortBy === 'newest' ? 'Newest' : sortBy === 'oldest' ? 'Oldest' : sortBy === 'name' ? 'A-Z' : 'Accuracy'}
+                {' • '}
+                View: {viewMode === 'list' ? 'List' : 'Detailed'}
               </Text>
             </View>
-          ) : null
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Ionicons 
-              name={activeTab === 'active' ? 'document-text-outline' : 'archive-outline'} 
-              size={60} 
-              color="#C77A58" 
-            />
-            <Text style={styles.emptyText}>
-              {activeTab === 'active' ? 'No active scans' : 'No archived scans'}
-            </Text>
-            <Text style={styles.emptySubtext}>
-              {activeTab === 'active' 
-                ? 'Your scan results will appear here' 
-                : 'Archived scans will appear here'}
-            </Text>
-          </View>
-        }
-      />
+          }
+        />
+      ) : (
+        <View style={styles.emptyContainer}>
+          <Ionicons 
+            name={activeTab === 'active' ? 'document-text-outline' : 'archive-outline'} 
+            size={60} 
+            color="#C77A58" 
+          />
+          <Text style={styles.emptyText}>
+            {activeTab === 'active' ? 'No active scans' : 'No archived scans'}
+          </Text>
+          <Text style={styles.emptySubtext}>
+            {activeTab === 'active' 
+              ? 'Your scan results will appear here' 
+              : 'Archived scans will appear here'}
+          </Text>
+        </View>
+      )}
 
       {renderFilterModal()}
       {renderDetailModal()}
@@ -840,6 +999,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
     letterSpacing: 1,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  viewModeButton: {
+    padding: 4,
   },
   filterButton: {
     padding: 4,
@@ -886,6 +1053,25 @@ const styles = StyleSheet.create({
     color: '#8A7A66',
     fontWeight: '500',
   },
+  // Section Header Styles
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+  },
+  sectionHeaderText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#5C3D2E',
+    marginRight: 8,
+  },
+  sectionHeaderLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(199, 122, 88, 0.3)',
+  },
+  // List View Styles
   cardWrapper: {
     marginBottom: 12,
   },
@@ -960,10 +1146,39 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 4,
   },
-  historyDetail: {
-    fontSize: 11,
+  accuracyContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minWidth: 100,
+  },
+  accuracyBarTrack: {
+    flex: 1,
+    height: 6,
+    backgroundColor: '#D2C4B0',
+    borderRadius: 3,
+    overflow: 'hidden',
+    maxWidth: 100,
+  },
+  accuracyBarFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  accuracyHigh: {
+    backgroundColor: '#27AE60',
+  },
+  accuracyMedium: {
+    backgroundColor: '#F39C12',
+  },
+  accuracyLow: {
+    backgroundColor: '#E74C3C',
+  },
+  accuracyText: {
+    fontSize: 10,
     color: '#555555',
     fontWeight: '600',
+    minWidth: 35,
   },
   typeBadge: {
     paddingHorizontal: 8,
@@ -994,6 +1209,87 @@ const styles = StyleSheet.create({
     padding: 8,
     marginLeft: 4,
   },
+  // Detailed View Styles
+  detailedCardWrapper: {
+    marginBottom: 14,
+  },
+  detailedCard: {
+    backgroundColor: '#E4D3BB',
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  detailedImage: {
+    width: '100%',
+    height: 160,
+  },
+  detailedContent: {
+    padding: 14,
+    gap: 6,
+  },
+  detailedHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  detailedTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#222222',
+    flex: 1,
+  },
+  detailedSubtitle: {
+    fontSize: 13,
+    color: '#444444',
+    fontWeight: '500',
+  },
+  detailedDescription: {
+    fontSize: 12,
+    color: '#666666',
+    lineHeight: 18,
+  },
+  detailedFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: 'rgba(199, 122, 88, 0.1)',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 4,
+  },
+  detailedStat: {
+    alignItems: 'center',
+    gap: 2,
+  },
+  detailedStatLabel: {
+    fontSize: 10,
+    color: '#8A7A66',
+    fontWeight: '500',
+  },
+  detailedStatValue: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#5C3D2E',
+  },
+  detailedAccuracyBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    width: '100%',
+  },
+  detailedActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  detailedActionButton: {
+    padding: 6,
+  },
+  // Empty State
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -1010,6 +1306,7 @@ const styles = StyleSheet.create({
     color: '#8A7A66',
     marginTop: 8,
   },
+  // Modal Styles
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',

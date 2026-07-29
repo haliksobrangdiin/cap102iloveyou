@@ -6,13 +6,13 @@ import {
   TouchableOpacity,
   Modal,
   Platform,
-  Switch,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 const SettingsScreen = ({ navigation }) => {
-  const [modalVisible, setModalVisible] = useState(true); // Start with modal open
+  const [modalVisible, setModalVisible] = useState(true);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState('English');
 
@@ -20,24 +20,21 @@ const SettingsScreen = ({ navigation }) => {
 
   const handleLanguageSelect = (language) => {
     setSelectedLanguage(language);
-    // Here you would implement language change logic
     console.log(`Language changed to: ${language}`);
   };
 
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
-    // Here you would implement dark mode toggle logic
     console.log(`Dark mode: ${!isDarkMode}`);
   };
 
   const closeModal = () => {
     setModalVisible(false);
-    navigation.goBack(); // Navigate back to previous screen
+    navigation.goBack();
   };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton} 
@@ -50,7 +47,6 @@ const SettingsScreen = ({ navigation }) => {
         <View style={styles.headerRight} />
       </View>
 
-      {/* Settings Modal */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -59,7 +55,6 @@ const SettingsScreen = ({ navigation }) => {
       >
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, isDarkMode && styles.modalContentDark]}>
-            {/* Modal Header */}
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, isDarkMode && styles.textDark]}>Settings</Text>
               <TouchableOpacity 
@@ -67,126 +62,131 @@ const SettingsScreen = ({ navigation }) => {
                 style={styles.closeButton}
                 activeOpacity={0.7}
               >
-                <Ionicons name="close" size={28} color={isDarkMode ? '#FFFFFF' : '#5C3D2E'} />
+                <Ionicons name="close" size={24} color={isDarkMode ? '#FFFFFF' : '#5C3D2E'} />
               </TouchableOpacity>
             </View>
 
-            {/* Language Section */}
-            <View style={[styles.section, isDarkMode && styles.sectionDark]}>
-              <View style={styles.sectionHeader}>
-                <Ionicons name="language-outline" size={24} color={isDarkMode ? '#E4D3BB' : '#C77A58'} />
-                <Text style={[styles.sectionTitle, isDarkMode && styles.textDark]}>Language</Text>
+            <ScrollView 
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.scrollContent}
+            >
+              {/* Language Section */}
+              <View style={[styles.section, isDarkMode && styles.sectionDark]}>
+                <View style={styles.sectionHeader}>
+                  <Ionicons name="language-outline" size={20} color={isDarkMode ? '#E4D3BB' : '#C77A58'} />
+                  <Text style={[styles.sectionTitle, isDarkMode && styles.textDark]}>Language</Text>
+                </View>
+                <Text style={[styles.sectionSubtitle, isDarkMode && styles.textDarkSecondary]}>
+                  Select your preferred language
+                </Text>
+                
+                <View style={styles.languageContainer}>
+                  {languages.map((language) => (
+                    <TouchableOpacity
+                      key={language}
+                      style={[
+                        styles.languageOption,
+                        selectedLanguage === language && styles.languageOptionActive,
+                        isDarkMode && styles.languageOptionDark,
+                        isDarkMode && selectedLanguage === language && styles.languageOptionActiveDark,
+                      ]}
+                      onPress={() => handleLanguageSelect(language)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[
+                        styles.languageText,
+                        selectedLanguage === language && styles.languageTextActive,
+                        isDarkMode && styles.textDark,
+                        isDarkMode && selectedLanguage === language && styles.languageTextActiveDark,
+                      ]}>
+                        {language}
+                      </Text>
+                      {selectedLanguage === language && (
+                        <Ionicons 
+                          name="checkmark-circle" 
+                          size={16} 
+                          color={isDarkMode ? '#E4D3BB' : '#C77A58'} 
+                        />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
-              <Text style={[styles.sectionSubtitle, isDarkMode && styles.textDarkSecondary]}>
-                Select your preferred language
-              </Text>
-              
-              <View style={styles.languageContainer}>
-                {languages.map((language) => (
+
+              {/* Theme Section */}
+              <View style={[styles.section, isDarkMode && styles.sectionDark]}>
+                <View style={styles.sectionHeader}>
+                  <Ionicons name="color-palette-outline" size={20} color={isDarkMode ? '#E4D3BB' : '#C77A58'} />
+                  <Text style={[styles.sectionTitle, isDarkMode && styles.textDark]}>Theme</Text>
+                </View>
+                <Text style={[styles.sectionSubtitle, isDarkMode && styles.textDarkSecondary]}>
+                  Choose your preferred theme
+                </Text>
+                
+                <View style={styles.themeContainer}>
                   <TouchableOpacity
-                    key={language}
                     style={[
-                      styles.languageOption,
-                      selectedLanguage === language && styles.languageOptionActive,
-                      isDarkMode && styles.languageOptionDark,
-                      isDarkMode && selectedLanguage === language && styles.languageOptionActiveDark,
+                      styles.themeOption,
+                      !isDarkMode && styles.themeOptionActive,
+                      isDarkMode && styles.themeOptionDark,
                     ]}
-                    onPress={() => handleLanguageSelect(language)}
+                    onPress={() => setIsDarkMode(false)}
                     activeOpacity={0.7}
                   >
-                    <Text style={[
-                      styles.languageText,
-                      selectedLanguage === language && styles.languageTextActive,
-                      isDarkMode && styles.textDark,
-                      isDarkMode && selectedLanguage === language && styles.languageTextActiveDark,
-                    ]}>
-                      {language}
-                    </Text>
-                    {selectedLanguage === language && (
-                      <Ionicons 
-                        name="checkmark-circle" 
-                        size={20} 
-                        color={isDarkMode ? '#E4D3BB' : '#C77A58'} 
-                      />
+                    <View style={styles.themePreview}>
+                      <View style={[styles.themeColor, { backgroundColor: '#DCC8AC' }]} />
+                      <View style={[styles.themeColor, { backgroundColor: '#C77A58' }]} />
+                      <View style={[styles.themeColor, { backgroundColor: '#E4D3BB' }]} />
+                    </View>
+                    <View style={styles.themeInfo}>
+                      <Text style={[styles.themeName, isDarkMode && styles.textDark]}>Light Mode</Text>
+                      <Text style={[styles.themeDescription, isDarkMode && styles.textDarkSecondary]}>
+                        Light and warm colors
+                      </Text>
+                    </View>
+                    {!isDarkMode && (
+                      <Ionicons name="checkmark-circle" size={20} color="#C77A58" />
                     )}
                   </TouchableOpacity>
-                ))}
-              </View>
-            </View>
 
-            {/* Theme Section */}
-            <View style={[styles.section, isDarkMode && styles.sectionDark]}>
-              <View style={styles.sectionHeader}>
-                <Ionicons name="color-palette-outline" size={24} color={isDarkMode ? '#E4D3BB' : '#C77A58'} />
-                <Text style={[styles.sectionTitle, isDarkMode && styles.textDark]}>Theme</Text>
+                  <TouchableOpacity
+                    style={[
+                      styles.themeOption,
+                      isDarkMode && styles.themeOptionActive,
+                      isDarkMode && styles.themeOptionDarkActive,
+                    ]}
+                    onPress={() => setIsDarkMode(true)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.themePreview}>
+                      <View style={[styles.themeColor, { backgroundColor: '#2C2C2C' }]} />
+                      <View style={[styles.themeColor, { backgroundColor: '#1A1A1A' }]} />
+                      <View style={[styles.themeColor, { backgroundColor: '#3D3D3D' }]} />
+                    </View>
+                    <View style={styles.themeInfo}>
+                      <Text style={[styles.themeName, isDarkMode && styles.textDark]}>Dark Mode</Text>
+                      <Text style={[styles.themeDescription, isDarkMode && styles.textDarkSecondary]}>
+                        Dark and modern colors
+                      </Text>
+                    </View>
+                    {isDarkMode && (
+                      <Ionicons name="checkmark-circle" size={20} color="#E4D3BB" />
+                    )}
+                  </TouchableOpacity>
+                </View>
               </View>
-              <Text style={[styles.sectionSubtitle, isDarkMode && styles.textDarkSecondary]}>
-                Choose your preferred theme
-              </Text>
-              
-              <View style={styles.themeContainer}>
-                <TouchableOpacity
-                  style={[
-                    styles.themeOption,
-                    !isDarkMode && styles.themeOptionActive,
-                    isDarkMode && styles.themeOptionDark,
-                  ]}
-                  onPress={() => setIsDarkMode(false)}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.themePreview}>
-                    <View style={[styles.themeColor, { backgroundColor: '#DCC8AC' }]} />
-                    <View style={[styles.themeColor, { backgroundColor: '#C77A58' }]} />
-                    <View style={[styles.themeColor, { backgroundColor: '#E4D3BB' }]} />
-                  </View>
-                  <View style={styles.themeInfo}>
-                    <Text style={[styles.themeName, isDarkMode && styles.textDark]}>Light Mode</Text>
-                    <Text style={[styles.themeDescription, isDarkMode && styles.textDarkSecondary]}>
-                      Light and warm colors
-                    </Text>
-                  </View>
-                  {!isDarkMode && (
-                    <Ionicons name="checkmark-circle" size={24} color="#C77A58" />
-                  )}
-                </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={[
-                    styles.themeOption,
-                    isDarkMode && styles.themeOptionActive,
-                    isDarkMode && styles.themeOptionDarkActive,
-                  ]}
-                  onPress={() => setIsDarkMode(true)}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.themePreview}>
-                    <View style={[styles.themeColor, { backgroundColor: '#2C2C2C' }]} />
-                    <View style={[styles.themeColor, { backgroundColor: '#1A1A1A' }]} />
-                    <View style={[styles.themeColor, { backgroundColor: '#3D3D3D' }]} />
-                  </View>
-                  <View style={styles.themeInfo}>
-                    <Text style={[styles.themeName, isDarkMode && styles.textDark]}>Dark Mode</Text>
-                    <Text style={[styles.themeDescription, isDarkMode && styles.textDarkSecondary]}>
-                      Dark and modern colors
-                    </Text>
-                  </View>
-                  {isDarkMode && (
-                    <Ionicons name="checkmark-circle" size={24} color="#E4D3BB" />
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Apply Button */}
-            <TouchableOpacity 
-              style={[styles.applyButton, isDarkMode && styles.applyButtonDark]}
-              onPress={closeModal}
-              activeOpacity={0.85}
-            >
-              <Text style={[styles.applyButtonText, isDarkMode && styles.applyButtonTextDark]}>
-                Apply Settings
-              </Text>
-            </TouchableOpacity>
+              {/* Apply Button */}
+              <TouchableOpacity 
+                style={[styles.applyButton, isDarkMode && styles.applyButtonDark]}
+                onPress={closeModal}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.applyButtonText, isDarkMode && styles.applyButtonTextDark]}>
+                  Apply Settings
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -233,10 +233,10 @@ const styles = StyleSheet.create({
   modalContent: {
     backgroundColor: '#F5EDE3',
     borderRadius: 20,
-    padding: 24,
+    padding: 20,
     width: '90%',
     maxWidth: 400,
-    maxHeight: '85%',
+    maxHeight: '80%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
@@ -250,24 +250,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
-    paddingBottom: 16,
+    marginBottom: 16,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(199, 122, 88, 0.3)',
   },
   modalTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '700',
     color: '#5C3D2E',
   },
   closeButton: {
     padding: 4,
   },
+  scrollContent: {
+    paddingBottom: 4,
+  },
   section: {
     backgroundColor: '#E4D3BB',
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    padding: 14,
+    marginBottom: 14,
   },
   sectionDark: {
     backgroundColor: '#3D3D3D',
@@ -275,19 +278,19 @@ const styles = StyleSheet.create({
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
-    gap: 10,
+    marginBottom: 6,
+    gap: 8,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
     color: '#5C3D2E',
   },
   sectionSubtitle: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#666666',
-    marginBottom: 12,
-    paddingLeft: 34,
+    marginBottom: 10,
+    paddingLeft: 28,
   },
   textDark: {
     color: '#FFFFFF',
@@ -298,17 +301,17 @@ const styles = StyleSheet.create({
   languageContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    paddingLeft: 34,
+    gap: 6,
+    paddingLeft: 28,
   },
   languageOption: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F5EDE3',
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-    gap: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    gap: 6,
     borderWidth: 1,
     borderColor: 'transparent',
   },
@@ -324,7 +327,7 @@ const styles = StyleSheet.create({
     borderColor: '#E4D3BB',
   },
   languageText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#5C3D2E',
     fontWeight: '500',
   },
@@ -335,16 +338,16 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   themeContainer: {
-    gap: 12,
-    paddingLeft: 34,
+    gap: 10,
+    paddingLeft: 28,
   },
   themeOption: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F5EDE3',
-    padding: 12,
-    borderRadius: 12,
-    gap: 12,
+    padding: 10,
+    borderRadius: 10,
+    gap: 10,
     borderWidth: 2,
     borderColor: 'transparent',
   },
@@ -359,43 +362,43 @@ const styles = StyleSheet.create({
   },
   themePreview: {
     flexDirection: 'row',
-    gap: 4,
+    gap: 3,
   },
   themeColor: {
-    width: 24,
-    height: 24,
+    width: 20,
+    height: 20,
     borderRadius: 4,
   },
   themeInfo: {
     flex: 1,
   },
   themeName: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: '#5C3D2E',
   },
   themeDescription: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#888888',
   },
   applyButton: {
     backgroundColor: '#C77A58',
-    paddingVertical: 14,
-    borderRadius: 12,
+    paddingVertical: 12,
+    borderRadius: 10,
     alignItems: 'center',
     shadowColor: '#C77A58',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 4,
-    marginTop: 8,
+    marginTop: 4,
   },
   applyButtonDark: {
     backgroundColor: '#6B4F3A',
     shadowColor: '#6B4F3A',
   },
   applyButtonText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: '#FFFFFF',
     letterSpacing: 0.5,
