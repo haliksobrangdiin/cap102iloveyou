@@ -330,8 +330,8 @@ const OnboardingScreen = ({ navigation }) => {
   };
 
   return (
-    <FlatList
-      ref={flatListRef}
+    <Animated.FlatList
+  ref={flatListRef}
       data={onboardingData}
       renderItem={renderItem}
       horizontal
