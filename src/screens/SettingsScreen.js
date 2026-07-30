@@ -7,9 +7,11 @@ import {
   Modal,
   Platform,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 const SettingsScreen = ({ navigation }) => {
   const [modalVisible, setModalVisible] = useState(true);
@@ -31,6 +33,38 @@ const SettingsScreen = ({ navigation }) => {
   const closeModal = () => {
     setModalVisible(false);
     navigation.goBack();
+  };
+
+  // Handle exit with confirmation
+  const handleExit = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    
+    Alert.alert(
+      'Exit App',
+      'Are you sure you want to exit RootCare?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+          onPress: () => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          }
+        },
+        {
+          text: 'Exit',
+          style: 'destructive',
+          onPress: () => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            setModalVisible(false);
+            // Navigate back to splash screen (Onboarding)
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Onboarding' }],
+            });
+          }
+        }
+      ]
+    );
   };
 
   return (
@@ -176,6 +210,19 @@ const SettingsScreen = ({ navigation }) => {
                 </View>
               </View>
 
+              {/* Exit Section */}
+              <View style={[styles.section, styles.exitSection, isDarkMode && styles.sectionDark]}>
+                <TouchableOpacity
+                  style={styles.exitButton}
+                  onPress={handleExit}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="exit-outline" size={22} color="#E74C3C" />
+                  <Text style={styles.exitText}>Exit App</Text>
+                  <Ionicons name="chevron-forward" size={20} color="#E74C3C" />
+                </TouchableOpacity>
+              </View>
+
               {/* Apply Button */}
               <TouchableOpacity 
                 style={[styles.applyButton, isDarkMode && styles.applyButtonDark]}
@@ -274,6 +321,12 @@ const styles = StyleSheet.create({
   },
   sectionDark: {
     backgroundColor: '#3D3D3D',
+  },
+  exitSection: {
+    backgroundColor: 'rgba(231, 76, 60, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(231, 76, 60, 0.2)',
+    padding: 6,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -380,6 +433,21 @@ const styles = StyleSheet.create({
   themeDescription: {
     fontSize: 11,
     color: '#888888',
+  },
+  // Exit Button Styles
+  exitButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    gap: 12,
+  },
+  exitText: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#E74C3C',
   },
   applyButton: {
     backgroundColor: '#C77A58',
