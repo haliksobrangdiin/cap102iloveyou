@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Image,
   StyleSheet,
-  Alert,
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -31,7 +30,7 @@ const ScannerScreen = ({ navigation }) => {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       quality: 1,
     });
@@ -87,7 +86,6 @@ const ScannerScreen = ({ navigation }) => {
     setLoading(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    // Simulate analysis (replace with actual API call)
     setTimeout(() => {
       setLoading(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -104,7 +102,7 @@ const ScannerScreen = ({ navigation }) => {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerText}>SCAN LEAF</Text>
+        <Text style={styles.headerText}>SCAN DISEASE</Text>
       </View>
 
       <View style={styles.content}>
@@ -115,7 +113,7 @@ const ScannerScreen = ({ navigation }) => {
             <Image source={{ uri: image }} style={styles.image} />
           ) : (
             <View style={styles.placeholder}>
-              <Ionicons name="leaf-outline" size={60} color="#C77A58" />
+              <Ionicons name="leaf-outline" size={60} color="#88D982" />
               <Text style={styles.placeholderText}>No Image Selected</Text>
             </View>
           )}
@@ -170,13 +168,13 @@ const HEADER_HEIGHT = 52;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#DCC8AC',
+    backgroundColor: '#FFF8F6',
     ...(Platform.OS === 'web' ? { height: '100vh', overflow: 'hidden' } : {}),
   },
   header: {
     width: '100%',
     minHeight: HEADER_HEIGHT,
-    backgroundColor: '#C77A58',
+    backgroundColor: '#0D631B', // Primary green
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 12,
@@ -195,7 +193,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-    color: '#5C4B3A',
+    color: '#40493D',
     textAlign: 'center',
     marginBottom: 20,
     fontWeight: '500',
@@ -203,10 +201,10 @@ const styles = StyleSheet.create({
   imageContainer: {
     width: '100%',
     height: 300,
-    backgroundColor: '#E4D3BB',
+    backgroundColor: '#F5EDE3',
     borderRadius: 15,
     borderWidth: 2,
-    borderColor: '#C77A58',
+    borderColor: '#88D982', // Primary fixed dim
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
@@ -222,7 +220,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   placeholderText: {
-    color: '#8A7A66',
+    color: '#40493D',
     fontSize: 16,
     marginTop: 10,
     fontWeight: '500',
@@ -232,7 +230,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   loadingText: {
-    color: '#C77A58',
+    color: '#0D631B',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -257,15 +255,15 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   cameraButton: {
-    backgroundColor: '#C77A58',
+    backgroundColor: '#2E7D32', // Primary container
     width: '48%',
   },
   galleryButton: {
-    backgroundColor: '#8A7A66',
+    backgroundColor: '#7A5649', // Secondary
     width: '48%',
   },
   analyzeButton: {
-    backgroundColor: '#B86D4F',
+    backgroundColor: '#2E7D32', // Primary container
     flexDirection: 'row',
     paddingVertical: 16,
     paddingHorizontal: 20,
@@ -274,7 +272,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    shadowColor: '#B86D4F',
+    shadowColor: '#2E7D32',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
