@@ -5,23 +5,21 @@ import { createStackNavigator } from '@react-navigation/stack';
 import Toast from 'react-native-toast-message';
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import MainTabs from './src/navigation/MainTabs';
-import ScannerScreen from './src/screens/ScannerScreen';
-import ResultScreen from './src/screens/ResultScreen';
 
 const Stack = createStackNavigator();
 
 const App = () => {
+  console.log(' App starting...');
+  
   return (
     <>
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />
           <Stack.Screen name="MainTabs" component={MainTabs} />
-          <Stack.Screen name="Scanner" component={ScannerScreen} />
-          <Stack.Screen name="Result" component={ResultScreen} />
         </Stack.Navigator>
       </NavigationContainer>
-      <Toast /> {/* ← Add this line */}
+      <Toast />
     </>
   );
 };

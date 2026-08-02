@@ -1,44 +1,75 @@
+// screens/SettingsScreen.js
 import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  Modal,
   Platform,
   ScrollView,
   Alert,
+  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
+const colors = {
+  surface: '#FFF8F6',
+  'surface-dim': '#FBD1C4',
+  'surface-container': '#FFE9E3',
+  'surface-container-low': '#FFF1ED',
+  'surface-container-high': '#FFE2DA',
+  'surface-container-highest': '#FFDBD0',
+  'surface-container-lowest': '#FFFFFF',
+  'on-surface': '#2C160E',
+  'on-surface-variant': '#40493D',
+  outline: '#707A6C',
+  'outline-variant': '#BFCABA',
+  primary: '#0D631B',
+  'on-primary': '#FFFFFF',
+  'primary-container': '#2E7D32',
+  'on-primary-container': '#CBFFC2',
+  'primary-fixed': '#A3F69C',
+  'primary-fixed-dim': '#88D982',
+  secondary: '#7A5649',
+  'on-secondary': '#FFFFFF',
+  'secondary-container': '#FDCDBC',
+  'on-secondary-container': '#795548',
+  tertiary: '#774C00',
+  'tertiary-container': '#986200',
+  'on-tertiary-container': '#FFEEDE',
+  error: '#BA1A1A',
+  'on-error': '#FFFFFF',
+  'error-container': '#FFDAD6',
+  'on-error-container': '#93000A',
+  background: '#FFF8F6',
+  'on-background': '#2C160E',
+  'surface-variant': '#FFDBD0',
+  'surface-tint': '#1B6D24',
+};
+
 const SettingsScreen = ({ navigation }) => {
-  const [modalVisible, setModalVisible] = useState(true);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState('English');
+  const [pushNotifications, setPushNotifications] = useState(true);
+  const [weatherAlerts, setWeatherAlerts] = useState(true);
+  const [marketUpdates, setMarketUpdates] = useState(false);
 
-  const languages = ['English', 'Filipino', 'Spanish', 'French', 'Chinese'];
+  const languages = ['English', 'Français', 'Yoruba'];
 
   const handleLanguageSelect = (language) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedLanguage(language);
-    console.log(`Language changed to: ${language}`);
   };
 
   const toggleDarkMode = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setIsDarkMode(!isDarkMode);
-    console.log(`Dark mode: ${!isDarkMode}`);
   };
 
-  const closeModal = () => {
-    setModalVisible(false);
-    navigation.goBack();
-  };
-
-  // Handle exit with confirmation
   const handleExit = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    
     Alert.alert(
       'Exit App',
       'Are you sure you want to exit RootCare?',
@@ -46,197 +77,414 @@ const SettingsScreen = ({ navigation }) => {
         {
           text: 'Cancel',
           style: 'cancel',
-          onPress: () => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          }
+          onPress: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light),
         },
         {
           text: 'Exit',
           style: 'destructive',
           onPress: () => {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            setModalVisible(false);
-            // Navigate back to splash screen (Onboarding)
             navigation.reset({
               index: 0,
               routes: [{ name: 'Onboarding' }],
             });
-          }
-        }
+          },
+        },
       ]
     );
   };
 
+  const themeColors = {
+    background: isDarkMode ? '#1A1A1A' : colors.surface,
+    surface: isDarkMode ? '#2C2C2C' : colors['surface-container-lowest'],
+    surfaceSecondary: isDarkMode ? '#3D3D3D' : colors['surface-container-low'],
+    surfaceTertiary: isDarkMode ? '#4A4A4A' : colors['surface-container'],
+    text: isDarkMode ? '#FFFFFF' : colors['on-surface'],
+    textSecondary: isDarkMode ? '#B0B0B0' : colors['on-surface-variant'],
+    primary: isDarkMode ? colors['primary-fixed-dim'] : colors.primary,
+    primaryContainer: isDarkMode ? colors['primary-fixed-dim'] : colors['primary-container'],
+    border: isDarkMode ? '#444444' : colors['outline-variant'],
+    card: isDarkMode ? '#2C2C2C' : colors['surface-container-lowest'],
+    error: colors.error,
+  };
+
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton} 
-          onPress={closeModal}
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: themeColors.background }]}
+      edges={['top']}
+    >
+      {/* ===== REDESIGNED HEADER ===== */}
+      <View style={[styles.header, { backgroundColor: themeColors.background }]}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
           activeOpacity={0.7}
         >
-          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          <Ionicons name="chevron-back" size={28} color={themeColors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerText}>SETTINGS</Text>
-        <View style={styles.headerRight} />
+        <Text style={[styles.headerText, { color: themeColors.text }]}>
+          Settings
+        </Text>
+        <TouchableOpacity style={styles.headerAction} activeOpacity={0.7}>
+          <Ionicons name="search-outline" size={24} color={themeColors.text} />
+        </TouchableOpacity>
       </View>
 
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={closeModal}
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: 100 },
+        ]}
       >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, isDarkMode && styles.modalContentDark]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, isDarkMode && styles.textDark]}>Settings</Text>
-              <TouchableOpacity 
-                onPress={closeModal} 
-                style={styles.closeButton}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="close" size={24} color={isDarkMode ? '#FFFFFF' : '#5C3D2E'} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView 
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.scrollContent}
+        {/* ===== PROFILE SECTION ===== */}
+        <View
+          style={[
+            styles.profileSection,
+            {
+              backgroundColor: themeColors.surface,
+              borderColor: themeColors.border,
+            },
+          ]}
+        >
+          <View style={styles.profileAvatar}>
+            <Text style={styles.profileInitial}>A</Text>
+          </View>
+          <View style={styles.profileInfo}>
+            <Text style={[styles.profileName, { color: themeColors.text }]}>
+              Adeola Johnson
+            </Text>
+            <Text style={[styles.profileEmail, { color: themeColors.textSecondary }]}>
+              adeola@rootcare.farm
+            </Text>
+            <View
+              style={[
+                styles.profileBadge,
+                { backgroundColor: themeColors.primary },
+              ]}
             >
-              {/* Language Section */}
-              <View style={[styles.section, isDarkMode && styles.sectionDark]}>
-                <View style={styles.sectionHeader}>
-                  <Ionicons name="language-outline" size={20} color={isDarkMode ? '#E4D3BB' : '#C77A58'} />
-                  <Text style={[styles.sectionTitle, isDarkMode && styles.textDark]}>Language</Text>
-                </View>
-                <Text style={[styles.sectionSubtitle, isDarkMode && styles.textDarkSecondary]}>
-                  Select your preferred language
-                </Text>
-                
-                <View style={styles.languageContainer}>
-                  {languages.map((language) => (
-                    <TouchableOpacity
-                      key={language}
-                      style={[
-                        styles.languageOption,
-                        selectedLanguage === language && styles.languageOptionActive,
-                        isDarkMode && styles.languageOptionDark,
-                        isDarkMode && selectedLanguage === language && styles.languageOptionActiveDark,
-                      ]}
-                      onPress={() => handleLanguageSelect(language)}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={[
-                        styles.languageText,
-                        selectedLanguage === language && styles.languageTextActive,
-                        isDarkMode && styles.textDark,
-                        isDarkMode && selectedLanguage === language && styles.languageTextActiveDark,
-                      ]}>
-                        {language}
-                      </Text>
-                      {selectedLanguage === language && (
-                        <Ionicons 
-                          name="checkmark-circle" 
-                          size={16} 
-                          color={isDarkMode ? '#E4D3BB' : '#C77A58'} 
-                        />
-                      )}
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              {/* Theme Section */}
-              <View style={[styles.section, isDarkMode && styles.sectionDark]}>
-                <View style={styles.sectionHeader}>
-                  <Ionicons name="color-palette-outline" size={20} color={isDarkMode ? '#E4D3BB' : '#C77A58'} />
-                  <Text style={[styles.sectionTitle, isDarkMode && styles.textDark]}>Theme</Text>
-                </View>
-                <Text style={[styles.sectionSubtitle, isDarkMode && styles.textDarkSecondary]}>
-                  Choose your preferred theme
-                </Text>
-                
-                <View style={styles.themeContainer}>
-                  <TouchableOpacity
-                    style={[
-                      styles.themeOption,
-                      !isDarkMode && styles.themeOptionActive,
-                      isDarkMode && styles.themeOptionDark,
-                    ]}
-                    onPress={() => setIsDarkMode(false)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.themePreview}>
-                      <View style={[styles.themeColor, { backgroundColor: '#DCC8AC' }]} />
-                      <View style={[styles.themeColor, { backgroundColor: '#C77A58' }]} />
-                      <View style={[styles.themeColor, { backgroundColor: '#E4D3BB' }]} />
-                    </View>
-                    <View style={styles.themeInfo}>
-                      <Text style={[styles.themeName, isDarkMode && styles.textDark]}>Light Mode</Text>
-                      <Text style={[styles.themeDescription, isDarkMode && styles.textDarkSecondary]}>
-                        Light and warm colors
-                      </Text>
-                    </View>
-                    {!isDarkMode && (
-                      <Ionicons name="checkmark-circle" size={20} color="#C77A58" />
-                    )}
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.themeOption,
-                      isDarkMode && styles.themeOptionActive,
-                      isDarkMode && styles.themeOptionDarkActive,
-                    ]}
-                    onPress={() => setIsDarkMode(true)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.themePreview}>
-                      <View style={[styles.themeColor, { backgroundColor: '#2C2C2C' }]} />
-                      <View style={[styles.themeColor, { backgroundColor: '#1A1A1A' }]} />
-                      <View style={[styles.themeColor, { backgroundColor: '#3D3D3D' }]} />
-                    </View>
-                    <View style={styles.themeInfo}>
-                      <Text style={[styles.themeName, isDarkMode && styles.textDark]}>Dark Mode</Text>
-                      <Text style={[styles.themeDescription, isDarkMode && styles.textDarkSecondary]}>
-                        Dark and modern colors
-                      </Text>
-                    </View>
-                    {isDarkMode && (
-                      <Ionicons name="checkmark-circle" size={20} color="#E4D3BB" />
-                    )}
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              {/* Exit Section */}
-              <View style={[styles.section, styles.exitSection, isDarkMode && styles.sectionDark]}>
-                <TouchableOpacity
-                  style={styles.exitButton}
-                  onPress={handleExit}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="exit-outline" size={22} color="#E74C3C" />
-                  <Text style={styles.exitText}>Exit App</Text>
-                  <Ionicons name="chevron-forward" size={20} color="#E74C3C" />
-                </TouchableOpacity>
-              </View>
-
-              {/* Apply Button */}
-              <TouchableOpacity 
-                style={[styles.applyButton, isDarkMode && styles.applyButtonDark]}
-                onPress={closeModal}
-                activeOpacity={0.85}
-              >
-                <Text style={[styles.applyButtonText, isDarkMode && styles.applyButtonTextDark]}>
-                  Apply Settings
-                </Text>
-              </TouchableOpacity>
-            </ScrollView>
+              <Text style={[styles.profileBadgeText, { color: colors['on-primary'] }]}>
+                PREMIUM PLAN
+              </Text>
+            </View>
           </View>
         </View>
-      </Modal>
+
+        {/* ===== ACCOUNT SECTION ===== */}
+        <View
+          style={[
+            styles.section,
+            {
+              backgroundColor: themeColors.surface,
+              borderColor: themeColors.border,
+            },
+          ]}
+        >
+          <Text style={[styles.sectionTitle, { color: themeColors.primary }]}>
+            Account
+          </Text>
+
+          <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
+            <View style={styles.menuItemLeft}>
+              <Ionicons
+                name="person-outline"
+                size={20}
+                color={colors.secondary}
+              />
+              <Text style={[styles.menuItemText, { color: themeColors.text }]}>
+                Edit Profile
+              </Text>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={themeColors.textSecondary}
+            />
+          </TouchableOpacity>
+
+          <View style={[styles.divider, { backgroundColor: themeColors.border }]} />
+
+          <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
+            <View style={styles.menuItemLeft}>
+              <Ionicons
+                name="lock-closed-outline"
+                size={20}
+                color={colors.secondary}
+              />
+              <Text style={[styles.menuItemText, { color: themeColors.text }]}>
+                Change Password
+              </Text>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={themeColors.textSecondary}
+            />
+          </TouchableOpacity>
+
+          <View style={[styles.divider, { backgroundColor: themeColors.border }]} />
+
+          <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
+            <View style={styles.menuItemLeft}>
+              <Ionicons
+                name="shield-checkmark-outline"
+                size={20}
+                color={colors.secondary}
+              />
+              <Text style={[styles.menuItemText, { color: themeColors.text }]}>
+                Security & Privacy
+              </Text>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={themeColors.textSecondary}
+            />
+          </TouchableOpacity>
+        </View>
+
+        {/* ===== PREFERENCES SECTION ===== */}
+        <View
+          style={[
+            styles.section,
+            {
+              backgroundColor: themeColors.surface,
+              borderColor: themeColors.border,
+            },
+          ]}
+        >
+          <Text style={[styles.sectionTitle, { color: themeColors.primary }]}>
+            Preferences
+          </Text>
+
+          <Text style={[styles.label, { color: themeColors.textSecondary }]}>
+            App Language
+          </Text>
+          <View style={styles.languageContainer}>
+            {languages.map((language) => (
+              <TouchableOpacity
+                key={language}
+                style={[
+                  styles.languageOption,
+                  {
+                    backgroundColor:
+                      selectedLanguage === language
+                        ? themeColors.primary
+                        : themeColors.surfaceTertiary,
+                  },
+                ]}
+                onPress={() => handleLanguageSelect(language)}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[
+                    styles.languageText,
+                    {
+                      color:
+                        selectedLanguage === language
+                          ? colors['on-primary']
+                          : themeColors.text,
+                    },
+                  ]}
+                >
+                  {language}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* ===== APPEARANCE SECTION ===== */}
+        <View
+          style={[
+            styles.section,
+            {
+              backgroundColor: themeColors.surface,
+              borderColor: themeColors.border,
+            },
+          ]}
+        >
+          <Text style={[styles.sectionTitle, { color: themeColors.primary }]}>
+            Appearance
+          </Text>
+
+          <View style={styles.switchRow}>
+            <View>
+              <Text style={[styles.switchLabel, { color: themeColors.text }]}>
+                Dark Mode
+              </Text>
+              <Text style={[styles.switchSubtext, { color: themeColors.textSecondary }]}>
+                {isDarkMode ? 'On' : 'Off'}
+              </Text>
+            </View>
+            <Switch
+              value={isDarkMode}
+              onValueChange={toggleDarkMode}
+              trackColor={{ false: '#D1D1D6', true: colors['primary-fixed-dim'] }}
+              thumbColor={colors['on-primary']}
+            />
+          </View>
+        </View>
+
+        {/* ===== NOTIFICATIONS SECTION ===== */}
+        <View
+          style={[
+            styles.section,
+            {
+              backgroundColor: themeColors.surface,
+              borderColor: themeColors.border,
+            },
+          ]}
+        >
+          <Text style={[styles.sectionTitle, { color: themeColors.primary }]}>
+            Notifications
+          </Text>
+
+          <View style={styles.switchRow}>
+            <View>
+              <Text style={[styles.switchLabel, { color: themeColors.text }]}>
+                Push Notifications
+              </Text>
+              <Text style={[styles.switchSubtext, { color: themeColors.textSecondary }]}>
+                Get real-time alerts
+              </Text>
+            </View>
+            <Switch
+              value={pushNotifications}
+              onValueChange={setPushNotifications}
+              trackColor={{ false: '#D1D1D6', true: colors['primary-fixed-dim'] }}
+              thumbColor={colors['on-primary']}
+            />
+          </View>
+
+          <View style={[styles.divider, { backgroundColor: themeColors.border }]} />
+
+          <View style={styles.switchRow}>
+            <View>
+              <Text style={[styles.switchLabel, { color: themeColors.text }]}>
+                Weather Alerts
+              </Text>
+              <Text style={[styles.switchSubtext, { color: themeColors.textSecondary }]}>
+                Weather warnings for your area
+              </Text>
+            </View>
+            <Switch
+              value={weatherAlerts}
+              onValueChange={setWeatherAlerts}
+              trackColor={{ false: '#D1D1D6', true: colors['primary-fixed-dim'] }}
+              thumbColor={colors['on-primary']}
+            />
+          </View>
+
+          <View style={[styles.divider, { backgroundColor: themeColors.border }]} />
+
+          <View style={styles.switchRow}>
+            <View>
+              <Text style={[styles.switchLabel, { color: themeColors.text }]}>
+                Market Updates
+              </Text>
+              <Text style={[styles.switchSubtext, { color: themeColors.textSecondary }]}>
+                Cassava market price updates
+              </Text>
+            </View>
+            <Switch
+              value={marketUpdates}
+              onValueChange={setMarketUpdates}
+              trackColor={{ false: '#D1D1D6', true: colors['primary-fixed-dim'] }}
+              thumbColor={colors['on-primary']}
+            />
+          </View>
+        </View>
+
+        {/* ===== SUPPORT & INFO SECTION ===== */}
+        <View
+          style={[
+            styles.section,
+            {
+              backgroundColor: themeColors.surface,
+              borderColor: themeColors.border,
+            },
+          ]}
+        >
+          <Text style={[styles.sectionTitle, { color: themeColors.primary }]}>
+            Support & Info
+          </Text>
+
+          <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
+            <View style={styles.menuItemLeft}>
+              <Ionicons
+                name="help-buoy-outline"
+                size={20}
+                color={colors.secondary}
+              />
+              <Text style={[styles.menuItemText, { color: themeColors.text }]}>
+                Help Center
+              </Text>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={themeColors.textSecondary}
+            />
+          </TouchableOpacity>
+
+          <View style={[styles.divider, { backgroundColor: themeColors.border }]} />
+
+          <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
+            <View style={styles.menuItemLeft}>
+              <Ionicons
+                name="document-text-outline"
+                size={20}
+                color={colors.secondary}
+              />
+              <Text style={[styles.menuItemText, { color: themeColors.text }]}>
+                Terms of Service
+              </Text>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={themeColors.textSecondary}
+            />
+          </TouchableOpacity>
+
+          <View style={[styles.divider, { backgroundColor: themeColors.border }]} />
+
+          <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
+            <View style={styles.menuItemLeft}>
+              <Ionicons
+                name="shield-outline"
+                size={20}
+                color={colors.secondary}
+              />
+              <Text style={[styles.menuItemText, { color: themeColors.text }]}>
+                Privacy Policy
+              </Text>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={themeColors.textSecondary}
+            />
+          </TouchableOpacity>
+        </View>
+
+        {/* ===== LOG OUT BUTTON ===== */}
+        <TouchableOpacity
+          style={[styles.exitButton, { borderColor: themeColors.error }]}
+          onPress={handleExit}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="log-out-outline" size={22} color={themeColors.error} />
+          <Text style={[styles.exitText, { color: themeColors.error }]}>
+            Log Out
+          </Text>
+        </TouchableOpacity>
+
+        <Text style={[styles.versionText, { color: themeColors.textSecondary }]}>
+          RootCare Version 2.4.1 (Stable)
+        </Text>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -244,235 +492,185 @@ const SettingsScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#DCC8AC',
     ...(Platform.OS === 'web' ? { height: '100vh', overflow: 'hidden' } : {}),
   },
+  // ===== REDESIGNED HEADER STYLES =====
   header: {
     width: '100%',
-    minHeight: 52,
-    backgroundColor: '#C77A58',
+    minHeight: 56,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 12,
     paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
   },
   backButton: {
     padding: 4,
+    minWidth: 40,
   },
   headerText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    letterSpacing: 1,
+    fontSize: 18,
+    fontWeight: '600',
     flex: 1,
     textAlign: 'center',
+    letterSpacing: 0.3,
   },
-  headerRight: {
-    width: 32,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: '#F5EDE3',
-    borderRadius: 20,
-    padding: 20,
-    width: '90%',
-    maxWidth: 400,
-    maxHeight: '80%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  modalContentDark: {
-    backgroundColor: '#2C2C2C',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(199, 122, 88, 0.3)',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#5C3D2E',
-  },
-  closeButton: {
+  headerAction: {
     padding: 4,
+    minWidth: 40,
+    alignItems: 'flex-end',
   },
   scrollContent: {
-    paddingBottom: 4,
+    padding: 16,
   },
-  section: {
-    backgroundColor: '#E4D3BB',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 14,
-  },
-  sectionDark: {
-    backgroundColor: '#3D3D3D',
-  },
-  exitSection: {
-    backgroundColor: 'rgba(231, 76, 60, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(231, 76, 60, 0.2)',
-    padding: 6,
-  },
-  sectionHeader: {
+  // Profile Section
+  profileSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
-    gap: 8,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 16,
+    shadowColor: 'rgba(93, 64, 55, 0.08)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  sectionTitle: {
-    fontSize: 16,
+  profileAvatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#0D631B',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  profileInitial: {
+    fontSize: 28,
     fontWeight: '700',
-    color: '#5C3D2E',
-  },
-  sectionSubtitle: {
-    fontSize: 12,
-    color: '#666666',
-    marginBottom: 10,
-    paddingLeft: 28,
-  },
-  textDark: {
     color: '#FFFFFF',
   },
-  textDarkSecondary: {
-    color: '#B0B0B0',
+  profileInfo: {
+    flex: 1,
+  },
+  profileName: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  profileEmail: {
+    fontSize: 13,
+    marginTop: 2,
+  },
+  profileBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 2,
+    borderRadius: 12,
+    marginTop: 4,
+    alignSelf: 'flex-start',
+  },
+  profileBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  // Section
+  section: {
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    shadowColor: 'rgba(93, 64, 55, 0.06)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 12,
+    letterSpacing: 0.5,
+  },
+  // Menu Items
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+  },
+  menuItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  menuItemText: {
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  divider: {
+    height: 1,
+    marginVertical: 2,
+  },
+  // Language
+  label: {
+    fontSize: 13,
+    fontWeight: '500',
+    marginBottom: 8,
   },
   languageContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
-    paddingLeft: 28,
+    gap: 8,
   },
   languageOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F5EDE3',
     paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    gap: 6,
+    paddingHorizontal: 14,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: 'transparent',
   },
-  languageOptionActive: {
-    backgroundColor: '#C77A58',
-    borderColor: '#C77A58',
-  },
-  languageOptionDark: {
-    backgroundColor: '#4A4A4A',
-  },
-  languageOptionActiveDark: {
-    backgroundColor: '#6B4F3A',
-    borderColor: '#E4D3BB',
-  },
   languageText: {
     fontSize: 13,
-    color: '#5C3D2E',
     fontWeight: '500',
   },
-  languageTextActive: {
-    color: '#FFFFFF',
-  },
-  languageTextActiveDark: {
-    color: '#FFFFFF',
-  },
-  themeContainer: {
-    gap: 10,
-    paddingLeft: 28,
-  },
-  themeOption: {
+  // Switch
+  switchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5EDE3',
-    padding: 10,
-    borderRadius: 10,
-    gap: 10,
-    borderWidth: 2,
-    borderColor: 'transparent',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
   },
-  themeOptionActive: {
-    borderColor: '#C77A58',
+  switchLabel: {
+    fontSize: 15,
+    fontWeight: '500',
   },
-  themeOptionDark: {
-    backgroundColor: '#4A4A4A',
+  switchSubtext: {
+    fontSize: 12,
+    marginTop: 1,
   },
-  themeOptionDarkActive: {
-    borderColor: '#E4D3BB',
-  },
-  themePreview: {
-    flexDirection: 'row',
-    gap: 3,
-  },
-  themeColor: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-  },
-  themeInfo: {
-    flex: 1,
-  },
-  themeName: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#5C3D2E',
-  },
-  themeDescription: {
-    fontSize: 11,
-    color: '#888888',
-  },
-  // Exit Button Styles
+  // Exit Button
   exitButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    gap: 12,
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 2,
+    marginTop: 4,
+    marginBottom: 8,
   },
   exitText: {
-    flex: 1,
     fontSize: 15,
     fontWeight: '600',
-    color: '#E74C3C',
   },
-  applyButton: {
-    backgroundColor: '#C77A58',
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-    shadowColor: '#C77A58',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
-    marginTop: 4,
-  },
-  applyButtonDark: {
-    backgroundColor: '#6B4F3A',
-    shadowColor: '#6B4F3A',
-  },
-  applyButtonText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    letterSpacing: 0.5,
-  },
-  applyButtonTextDark: {
-    color: '#FFFFFF',
+  versionText: {
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 8,
   },
 });
 

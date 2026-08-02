@@ -1,5 +1,5 @@
 ﻿// screens/ScannerScreen.js
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,11 +8,15 @@ import {
   StyleSheet,
   Platform,
   Alert,
+  Dimensions,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
+
+const { width, height } = Dimensions.get('window');
 
 // RootCare Design System tokens
 const colors = {
@@ -34,7 +38,9 @@ const colors = {
 
 const typography = {
   headlineSm: { fontFamily: 'Montserrat', fontSize: 20, fontWeight: '600', lineHeight: 28 },
+  headlineMd: { fontFamily: 'Montserrat', fontSize: 24, fontWeight: '600', lineHeight: 32 },
   bodyMd: { fontFamily: 'Open Sans', fontSize: 16, fontWeight: '400', lineHeight: 24 },
+  bodyLg: { fontFamily: 'Open Sans', fontSize: 18, fontWeight: '400', lineHeight: 28 },
   labelLg: { fontFamily: 'Open Sans', fontSize: 14, fontWeight: '600', lineHeight: 20, letterSpacing: 0.1 },
 };
 
@@ -42,12 +48,37 @@ const spacing = { xs: 4, sm: 12, md: 16, lg: 24, xl: 32, marginMobile: 20 };
 
 const rounded = { sm: 4, DEFAULT: 8, md: 12, lg: 16, xl: 24, full: 9999 };
 
-const HEADER_HEIGHT = 56; // multiple of 8, per vertical rhythm rule
-const MIN_TOUCH = 48; // preferred touch target for outdoor "field" use
+const HEADER_HEIGHT = 56;
+const MIN_TOUCH = 48;
+const SCANNER_SIZE = width * 0.75;
 
 const ScannerScreen = ({ navigation }) => {
   const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(false);
+  
+  // Animation for scan line
+  const scanAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    startScanAnimation();
+  }, []);
+
+  const startScanAnimation = () => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(scanAnim, {
+          toValue: 1,
+          duration: 3000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scanAnim, {
+          toValue: 0,
+          duration: 3000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  };
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -100,7 +131,6 @@ const ScannerScreen = ({ navigation }) => {
     setLoading(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    // Simulate API call
     setTimeout(() => {
       setLoading(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -108,19 +138,26 @@ const ScannerScreen = ({ navigation }) => {
     }, 2000);
   };
 
+  // Scan line interpolation
+  const scanLineTranslate = scanAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-150, 150],
+  });
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header — Montserrat headline-sm on Forest Green */}
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerText}>Scan Disease</Text>
+        <Text style={styles.headerText}>Identify Plant Health</Text>
       </View>
 
       <View style={styles.content}>
-        <Text style={styles.subtitle}>
-          Take a photo or upload an image of the cassava leaf
+        {/* Description */}
+        <Text style={styles.description}>
+          Take a clear photo or upload an image of the cassava leaf to detect potential diseases using AI.
         </Text>
 
-        {/* Image Container — Level 1 card: 8px radius, brown-tinted 4px-blur shadow */}
+        {/* Image Container with Scanner Overlay */}
         <View style={styles.imageContainer}>
           {image ? (
             <>
@@ -137,8 +174,39 @@ const ScannerScreen = ({ navigation }) => {
             </>
           ) : (
             <View style={styles.placeholder}>
-              <Ionicons name="leaf-outline" size={60} color={colors.primaryFixedDim} />
-              <Text style={styles.placeholderText}>No image selected</Text>
+              {/* Scanner Overlay */}
+              <View style={styles.scannerOverlay}>
+                {/* Top-Left Corner */}
+                <View style={[styles.corner, styles.cornerTopLeft]} />
+                {/* Top-Right Corner */}
+                <View style={[styles.corner, styles.cornerTopRight]} />
+                {/* Bottom-Left Corner */}
+                <View style={[styles.corner, styles.cornerBottomLeft]} />
+                {/* Bottom-Right Corner */}
+                <View style={[styles.corner, styles.cornerBottomRight]} />
+                
+                {/* Animated Scanning Line */}
+                <Animated.View
+                  style={[
+                    styles.scanLine,
+                    {
+                      transform: [{ translateY: scanLineTranslate }],
+                    },
+                  ]}
+                />
+              </View>
+
+              {/* Leaf Icon in Center */}
+              <View style={styles.placeholderIconWrapper}>
+                <View style={styles.placeholderIconBackground}>
+                  <Ionicons name="leaf-outline" size={64} color={colors.primaryFixedDim} />
+                </View>
+              </View>
+
+              <Text style={styles.placeholderTitle}>Upload a Leaf Image</Text>
+              <Text style={styles.placeholderSubtext}>
+                Tap the camera or gallery button below to get started
+              </Text>
             </View>
           )}
         </View>
@@ -149,7 +217,7 @@ const ScannerScreen = ({ navigation }) => {
           </View>
         )}
 
-        {/* Button Row — pill-shaped secondary actions, 48px min height */}
+        {/* Button Row */}
         <View style={styles.buttonContainer}>
           <TouchableOpacity
             style={[styles.button, styles.cameraButton]}
@@ -172,7 +240,7 @@ const ScannerScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Primary Action — pill-shaped, full width, Level 2 elevation (12px blur) */}
+        {/* Primary Action */}
         <TouchableOpacity
           style={[styles.analyzeButton, loading && styles.disabledButton]}
           onPress={analyzeImage}
@@ -210,32 +278,35 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: spacing.marginMobile, // 20px per mobile margin rule
+    padding: spacing.marginMobile,
     alignItems: 'center',
+    paddingBottom: 100,
   },
-  subtitle: {
+  description: {
     ...typography.bodyMd,
     color: colors.onSurfaceVariant,
     textAlign: 'center',
-    marginBottom: spacing.lg,
+    marginBottom: spacing.xl,
+    paddingHorizontal: spacing.sm,
+    lineHeight: 24,
   },
   imageContainer: {
     width: '100%',
-    height: 300,
+    height: 340,
     backgroundColor: colors.surfaceContainerLow,
-    borderRadius: rounded.DEFAULT, // 8px — standard card radius
+    borderRadius: rounded.md,
     borderWidth: 2,
     borderColor: colors.primaryFixedDim,
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
     marginBottom: spacing.lg,
-    // Level 1 card shadow per design system: brown-tinted, 4px blur
     shadowColor: 'rgba(93, 64, 55, 0.08)',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 1,
     shadowRadius: 4,
     elevation: 2,
+    position: 'relative',
   },
   image: {
     width: '100%',
@@ -246,21 +317,110 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: spacing.sm,
     right: spacing.sm,
-    width: 44, // full 44x44 touch target per design system minimum
+    width: 44,
     height: 44,
     borderRadius: rounded.full,
-    backgroundColor: 'rgba(44, 22, 14, 0.55)', // on-surface at reduced opacity, reads over any photo
+    backgroundColor: 'rgba(44, 22, 14, 0.55)',
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 10,
   },
   placeholder: {
     justifyContent: 'center',
     alignItems: 'center',
+    padding: spacing.lg,
+    width: '100%',
+    height: '100%',
+    position: 'relative',
   },
-  placeholderText: {
-    ...typography.bodyMd,
-    color: colors.onSurfaceVariant,
+  // Scanner Overlay
+  scannerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  corner: {
+    position: 'absolute',
+    width: 30,
+    height: 30,
+    borderColor: colors.primaryFixedDim,
+  },
+  cornerTopLeft: {
+    top: 20,
+    left: 20,
+    borderTopWidth: 4,
+    borderLeftWidth: 4,
+    borderTopLeftRadius: 4,
+  },
+  cornerTopRight: {
+    top: 20,
+    right: 20,
+    borderTopWidth: 4,
+    borderRightWidth: 4,
+    borderTopRightRadius: 4,
+  },
+  cornerBottomLeft: {
+    bottom: 20,
+    left: 20,
+    borderBottomWidth: 4,
+    borderLeftWidth: 4,
+    borderBottomLeftRadius: 4,
+  },
+  cornerBottomRight: {
+    bottom: 20,
+    right: 20,
+    borderBottomWidth: 4,
+    borderRightWidth: 4,
+    borderBottomRightRadius: 4,
+  },
+  scanLine: {
+    position: 'absolute',
+    left: 40,
+    right: 40,
+    height: 2,
+    backgroundColor: 'rgba(136, 217, 130, 0.6)',
+    shadowColor: colors.primaryFixedDim,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 4,
+    borderRadius: 2,
+  },
+  placeholderIconWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
+    zIndex: 1,
+  },
+  placeholderIconBackground: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(136, 217, 130, 0.2)',
+  },
+  placeholderTitle: {
+    ...typography.headlineSm,
+    fontSize: 18,
+    color: colors.onSurface,
     marginTop: spacing.sm,
+    zIndex: 1,
+  },
+  placeholderSubtext: {
+    ...typography.bodyMd,
+    fontSize: 14,
+    color: colors.onSurfaceVariant,
+    textAlign: 'center',
+    marginTop: spacing.xs,
+    paddingHorizontal: spacing.lg,
+    zIndex: 1,
   },
   loadingContainer: {
     paddingVertical: spacing.xs,
@@ -282,7 +442,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     minHeight: MIN_TOUCH,
     paddingHorizontal: spacing.md,
-    borderRadius: rounded.full, // pill-shaped per design system
+    borderRadius: rounded.full,
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xs + 4,
@@ -298,12 +458,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     minHeight: MIN_TOUCH,
     paddingHorizontal: spacing.lg,
-    borderRadius: rounded.full, // pill-shaped primary action
+    borderRadius: rounded.full,
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
-    // Level 2 elevation per design system: 12px blur, prominent focus
     shadowColor: 'rgba(93, 64, 55, 0.12)',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 1,

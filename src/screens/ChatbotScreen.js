@@ -1,4 +1,5 @@
-﻿import React, { useState, useRef } from 'react';
+﻿// screens/ChatbotScreen.js
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -17,13 +18,19 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 
 const { width } = Dimensions.get('window');
 const SIDEBAR_WIDTH = Math.min(340, width * 0.85);
+// CustomTabBar's raised center button uses marginTop: -32 to float above the
+// bar's own container, so useBottomTabBarHeight() alone under-reports how
+// much space is actually visually occupied at the bottom of the screen.
+const RAISED_BUTTON_OVERFLOW = 32;
 
 const ChatbotScreen = ({ navigation }) => {
+  const tabBarHeight = useBottomTabBarHeight();
   const [messages, setMessages] = useState([
     { id: '1', text: 'Hello! How can I help you with your root crop farming today?', sender: 'bot' },
   ]);
@@ -33,8 +40,6 @@ const ChatbotScreen = ({ navigation }) => {
     { id: '2', text: 'How do I treat common root crop diseases?', icon: 'medical-outline' },
     { id: '3', text: 'When is the right time to harvest root crops?', icon: 'calendar-outline' },
     { id: '4', text: 'What type of fertilizer is best for root crops?', icon: 'flower-outline' },
-    { id: '5', text: 'How to prepare soil for root crop planting?', icon: 'earth-outline' },
-    { id: '6', text: 'What are common pests affecting root crops?', icon: 'bug-outline' },
   ]);
   const [conversationHistory] = useState([
     { id: '1', title: 'Cassava Mosaic Disease', date: 'Today, 2:30 PM', preview: 'How to identify and treat mosaic disease' },
@@ -48,10 +53,36 @@ const ChatbotScreen = ({ navigation }) => {
   const [showHistory, setShowHistory] = useState(false);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [attachments, setAttachments] = useState([]);
+  const [isInputFocused, setIsInputFocused] = useState(false);
 
   const slideAnim = useRef(new Animated.Value(-SIDEBAR_WIDTH)).current;
   const inputRef = useRef(null);
   const flatListRef = useRef(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  // Manual keyboard tracking instead of KeyboardAvoidingView.
+  // KeyboardAvoidingView has known layout bugs under React Native's New
+  // Architecture (Fabric, on by default in Expo SDK 54) combined with
+  // react-native-screens - it can collapse content instead of resizing.
+  // Tracking keyboard height directly and applying it as a normal
+  // marginBottom avoids that broken component entirely.
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 50);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const openHistory = () => {
     setShowHistory(true);
@@ -250,16 +281,13 @@ const ChatbotScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      <KeyboardAvoidingView
-        style={styles.chatArea}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
+      <View style={styles.chatArea}>
         <FlatList
           ref={flatListRef}
           data={messages}
           renderItem={renderMessage}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.messagesList}
+          contentContainerStyle={[styles.messagesList, { paddingBottom: 20 + tabBarHeight + RAISED_BUTTON_OVERFLOW }]}
           showsVerticalScrollIndicator={false}
           onContentSizeChange={() => {
             flatListRef.current?.scrollToEnd({ animated: true });
@@ -294,8 +322,8 @@ const ChatbotScreen = ({ navigation }) => {
           </View>
         )}
 
-        {/* Input area */}
-        <View style={styles.inputContainer}>
+        {/* Input area - offset above the floating tab bar, or above the keyboard when open */}
+        <View style={[styles.inputContainer, { marginBottom: keyboardHeight > 0 ? keyboardHeight : tabBarHeight + RAISED_BUTTON_OVERFLOW + 16 }]}>
           <TouchableOpacity 
             style={styles.attachButton}
             onPress={() => {
@@ -308,11 +336,13 @@ const ChatbotScreen = ({ navigation }) => {
 
           <TextInput
             ref={inputRef}
-            style={styles.input}
+            style={[styles.input, isInputFocused && styles.inputFocused]}
             placeholder="Ask about root crop farming..."
             placeholderTextColor="#707A6C"
             value={inputText}
             onChangeText={setInputText}
+            onFocus={() => setIsInputFocused(true)}
+            onBlur={() => setIsInputFocused(false)}
             multiline
             returnKeyType="send"
             onSubmitEditing={() => sendMessage(inputText)}
@@ -356,7 +386,7 @@ const ChatbotScreen = ({ navigation }) => {
             </View>
           </TouchableOpacity>
         </Modal>
-      </KeyboardAvoidingView>
+      </View>
 
       {/* History sidebar */}
       {showHistory && (
@@ -532,7 +562,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     padding: 12,
-    paddingBottom: 20,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 12,
     backgroundColor: '#FFF8F6',
     borderTopWidth: 1,
     borderTopColor: 'rgba(191, 202, 186, 0.3)',
@@ -546,15 +576,22 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
+    minHeight: 44,
     borderWidth: 1,
-    borderColor: 'rgba(122, 86, 73, 0.3)',
+    borderColor: 'rgba(122, 86, 73, 0.3)', // Soil Brown at 30% opacity, per design system
     borderRadius: 20,
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    maxHeight: 100,
-    fontSize: 14,
+    paddingVertical: 14,
+    maxHeight: 140,
+    fontFamily: 'Open Sans',
+    fontSize: 15,
+    lineHeight: 20,
     color: '#2C160E',
     backgroundColor: '#FFFFFF',
+  },
+  inputFocused: {
+    borderWidth: 2,
+    borderColor: '#0D631B', // Forest Green — border thickens + transitions on focus
   },
   sendButton: {
     backgroundColor: '#0D631B',

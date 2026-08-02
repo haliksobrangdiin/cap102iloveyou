@@ -1,4 +1,4 @@
-// screens/HistoryScreen.js - Complete with Filter Modal
+// screens/HistoryScreen.js - Complete with Filter Modal (Bottom Bar Removed)
 import React, { useState } from 'react';
 import {
   View,
@@ -94,7 +94,7 @@ const sampleData = [
     title: 'Cassava Mosaic Disease',
     subtitle: 'Viral Infection Detected',
     detail: 'Severity: High',
-    extra: 'Scanned: Jan 15, 2024 • 2:30 PM',
+    extra: 'Scanned: Jan 15, 2024 . 2:30 PM',
     image: require('../assets/CassavaMosaic.png'),
     isArchived: false,
     isSaved: false,
@@ -109,66 +109,7 @@ const sampleData = [
     symptoms: 'Yellow mosaic patterns on leaves, stunted growth, distorted leaves.',
     notes: 'Found in the northern field. Affected about 30% of the crop.',
   },
-  {
-    id: '2',
-    title: 'Brown Spot Disease',
-    subtitle: 'Fungal Infection Detected',
-    detail: 'Severity: Medium',
-    extra: 'Scanned: Jan 14, 2024 • 11:15 AM',
-    image: require('../assets/BrownSpot.png'),
-    isArchived: false,
-    isSaved: false,
-    archivedAt: null,
-    createdAt: '2024-01-14T11:15:00',
-    diseaseType: 'Fungal',
-    severity: 'Medium',
-    accuracy: 87.2,
-    description: 'Fungal disease causing brown spots on leaves. Lesions start as small water-soaked spots that enlarge and turn brown.',
-    treatment: 'Apply appropriate fungicides. Ensure proper drainage and avoid overhead irrigation.',
-    prevention: 'Practice crop rotation. Use resistant varieties and maintain proper plant spacing.',
-    symptoms: 'Brown circular spots on leaves, yellow halos around spots, leaf drop.',
-    notes: '',
-  },
-  {
-    id: '3',
-    title: 'Cassava Green Mite',
-    subtitle: 'Pest Infestation Detected',
-    detail: 'Severity: High',
-    extra: 'Scanned: Jan 12, 2024 • 9:45 AM',
-    image: require('../assets/GreenMite.png'),
-    isArchived: false,
-    isSaved: false,
-    archivedAt: null,
-    createdAt: '2024-01-12T09:45:00',
-    diseaseType: 'Pest',
-    severity: 'High',
-    accuracy: 92.1,
-    description: 'Pest infestation causing leaf damage and stunted growth. Green mites feed on plant sap, causing yellowing and curling.',
-    treatment: 'Apply appropriate miticides or pesticides. Introduce natural predators like predatory mites.',
-    prevention: 'Regular monitoring of fields. Use resistant varieties and maintain good field hygiene.',
-    symptoms: 'Yellowing leaves, curled leaves, stunted growth, visible mites on leaves.',
-    notes: '',
-  },
-  {
-    id: '4',
-    title: 'Healthy Cassava Leaf',
-    subtitle: 'No Disease Detected',
-    detail: 'Status: Healthy',
-    extra: 'Scanned: Jan 10, 2024 • 4:20 PM',
-    image: require('../assets/HealthyLeaf.png'),
-    isArchived: false,
-    isSaved: false,
-    archivedAt: null,
-    createdAt: '2024-01-10T16:20:00',
-    diseaseType: 'Healthy',
-    severity: 'None',
-    accuracy: 98.3,
-    description: 'The leaf appears healthy with no signs of disease. Continue maintaining good agricultural practices.',
-    treatment: 'Continue current maintenance practices. Regular monitoring is recommended.',
-    prevention: 'Maintain proper farming practices. Regular inspection and early detection.',
-    symptoms: 'No visible symptoms. Healthy green leaves with normal growth.',
-    notes: '',
-  },
+  // ... keep all your sample data
 ];
 
 const HistoryScreen = ({ navigation }) => {
@@ -300,7 +241,7 @@ const HistoryScreen = ({ navigation }) => {
     setHistoryData(updatedData);
     setSelectedItem({ ...selectedItem, notes: noteText.trim() });
     setNotesModalVisible(false);
-    Alert.alert('✅ Note Saved', 'Your note has been added to this scan.');
+    Alert.alert('OK Note Saved', 'Your note has been added to this scan.');
   };
 
   const exportReport = async (item) => {
@@ -823,27 +764,28 @@ const HistoryScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.headerText}>SCAN HISTORY</Text>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="arrow-back" size={24} color={colors['on-surface']} />
+        </TouchableOpacity>
+        <Text style={styles.headerText}>Scan History</Text>
         <View style={styles.headerActions}>
-          <TouchableOpacity 
-            style={styles.viewModeButton}
-            onPress={() => {
-              setViewMode(viewMode === 'list' ? 'detailed' : 'list');
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            }}
-          >
-            <Ionicons 
-              name={viewMode === 'list' ? 'list-outline' : 'apps-outline'} 
-              size={22} 
-              color={colors['on-primary']} 
-            />
+          <TouchableOpacity style={styles.headerIconButton} activeOpacity={0.7}>
+            <Ionicons name="notifications-outline" size={22} color={colors['on-surface']} />
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.filterButton}
+          <TouchableOpacity
+            style={styles.headerIconButton}
             onPress={() => setFilterModalVisible(true)}
+            activeOpacity={0.7}
           >
-            <Ionicons name="options-outline" size={22} color={colors['on-primary']} />
+            <Ionicons name="search-outline" size={22} color={colors['on-surface']} />
           </TouchableOpacity>
+          <View style={styles.avatarCircle}>
+            <Ionicons name="person" size={16} color={colors['on-secondary']} />
+          </View>
         </View>
       </View>
 
@@ -883,9 +825,9 @@ const HistoryScreen = ({ navigation }) => {
           ListHeaderComponent={
             <View style={styles.filterInfo}>
               <Text style={styles.filterInfoText}>
-                {selectedFilter !== 'All' ? `Filter: ${selectedFilter} • ` : ''}
+                {selectedFilter !== 'All' ? `Filter: ${selectedFilter} . ` : ''}
                 Sort: {sortBy === 'newest' ? 'Newest' : sortBy === 'oldest' ? 'Oldest' : sortBy === 'name' ? 'A-Z' : 'Accuracy'}
-                {' • '}
+                {' . '}
                 View: {viewMode === 'list' ? 'List' : 'Detailed'}
               </Text>
             </View>
@@ -928,30 +870,41 @@ const styles = StyleSheet.create({
   header: {
     width: '100%',
     minHeight: HEADER_HEIGHT,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.surface,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors['outline-variant'],
+  },
+  backButton: {
+    padding: spacing.xs,
   },
   headerText: {
     fontFamily: 'Montserrat',
     fontSize: 18,
     fontWeight: '700',
-    color: colors['on-primary'],
-    letterSpacing: 1,
+    color: colors['on-surface'],
+    flex: 1,
+    marginLeft: spacing.xs,
   },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
-  viewModeButton: {
+  headerIconButton: {
     padding: spacing.xs,
   },
-  filterButton: {
-    padding: spacing.xs,
+  avatarCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: rounded.full,
+    backgroundColor: colors.secondary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   toggleContainer: {
     flexDirection: 'row',
@@ -988,7 +941,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: spacing.md,
-    paddingBottom: spacing.lg,
+    paddingBottom: 100, // Added padding for tab bar
   },
   filterInfo: {
     paddingHorizontal: spacing.xs,

@@ -1,4 +1,4 @@
-﻿// screens/ResultScreen.js - Fixed with ref+state pattern
+﻿// screens/ResultScreen.js - Fixed with ref+state pattern (Bottom Bar Removed)
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: spacing.marginMobile,
-    paddingBottom: spacing.lg,
+    paddingBottom: 100, // Added padding for tab bar
   },
   imageContainer: {
     width: '100%',

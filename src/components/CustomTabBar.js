@@ -1,63 +1,82 @@
+// components/CustomTabBar.js
 import React from 'react';
-import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, Text, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../styles/colors';
 
-// Custom tab bar to achieve the raised center "Scan" button look.
-// Used as the `tabBar` prop on the bottom Tab.Navigator in MainTabs.js
+// RootCare Design System tokens
+const colors = {
+  surface: '#FFF8F6',
+  'surface-dim': '#FBD1C4',
+  'surface-container': '#FFE9E3',
+  'surface-container-low': '#FFF1ED',
+  'surface-container-high': '#FFE2DA',
+  'surface-container-highest': '#FFDBD0',
+  'surface-container-lowest': '#FFFFFF',
+  'on-surface': '#2C160E',
+  'on-surface-variant': '#40493D',
+  outline: '#707A6C',
+  'outline-variant': '#BFCABA',
+  primary: '#0D631B',
+  'on-primary': '#FFFFFF',
+  'primary-container': '#2E7D32',
+  'on-primary-container': '#CBFFC2',
+  'primary-fixed': '#A3F69C',
+  'primary-fixed-dim': '#88D982',
+  secondary: '#7A5649',
+  'on-secondary': '#FFFFFF',
+  'secondary-container': '#FDCDBC',
+  'on-secondary-container': '#795548',
+  tertiary: '#774C00',
+  'tertiary-container': '#986200',
+  'on-tertiary-container': '#FFEEDE',
+  error: '#BA1A1A',
+  'on-error': '#FFFFFF',
+  'error-container': '#FFDAD6',
+  'on-error-container': '#93000A',
+  background: '#FFF8F6',
+  'on-background': '#2C160E',
+  'surface-variant': '#FFDBD0',
+  'surface-tint': '#1B6D24',
+};
+
+const BOTTOM_BAR_HEIGHT = 72;
+const FAB_SIZE = 64;
+
 export default function CustomTabBar({ state, navigation }) {
-  const routeIcons = {
-    Home: 'home-outline',
-    Chatbot: 'chatbubble-ellipses-outline',
-    History: 'time-outline',
-    Settings: 'settings-outline',
+  const routeConfig = {
+    Home: { icon: 'home-outline', activeIcon: 'home', label: 'Home' },
+    Chatbot: { icon: 'chatbubble-ellipses-outline', activeIcon: 'chatbubble-ellipses', label: 'Ask AI' },
+    Scanner: { icon: 'scan-outline', activeIcon: 'scan', label: 'Scan Leaves', isCenter: true },
+    History: { icon: 'time-outline', activeIcon: 'time', label: 'Scan History' },
+    Settings: { icon: 'settings-outline', activeIcon: 'settings', label: 'Settings' },
   };
 
-  const routeLabels = {
-    Home: 'Home',
-    Chatbot: 'Ask AI',
-    History: 'Scan History',
-    Settings: 'Settings',
-  };
-
-  // Standard React Navigation custom-tab-bar pattern: emit the same
-  // 'tabPress' event a built-in tab bar would fire before navigating.
-  // This lets any nested screen (e.g. ResultScreen) call
-  // e.preventDefault() on it to block the switch — e.g. to confirm an
-  // unsaved result before leaving. Without this emit, screens have no
-  // event to intercept and navigate() just happens unconditionally.
-  const handleTabPress = (route, isFocused) => {
-    const event = navigation.emit({
-      type: 'tabPress',
-      target: route.key,
-      canPreventDefault: true,
-    });
-    console.log('[TabBar] emitted tabPress for', route.name, '— prevented?', event.defaultPrevented);
-
-    if (!isFocused && !event.defaultPrevented) {
-      navigation.navigate(route.name);
-    }
-  };
+  const currentRoute = state.routes[state.index].name;
 
   return (
     <View style={styles.container}>
       {state.routes.map((route, index) => {
         const isFocused = state.index === index;
-
-        // The center "Scanner" route gets special raised-button treatment
-        if (route.name === 'Scanner') {
+        const config = routeConfig[route.name];
+        
+        if (config?.isCenter) {
           return (
-            <TouchableOpacity
-              key={route.key}
-              style={styles.scanButtonWrap}
-              onPress={() => handleTabPress(route, isFocused)}
-              activeOpacity={0.85}
-            >
-              <View style={styles.scanButton}>
-                <Ionicons name="scan-outline" size={26} color={colors.textWhite} />
-              </View>
-              <Text style={styles.scanLabel}>Scan Leaves</Text>
-            </TouchableOpacity>
+            <View key={route.key} style={styles.fabSlot}>
+              <TouchableOpacity
+                style={styles.fabButton}
+                onPress={() => navigation.navigate(route.name)}
+                activeOpacity={0.85}
+              >
+                <Ionicons 
+                  name={isFocused ? config.activeIcon : config.icon} 
+                  size={28} 
+                  color={colors['on-primary']} 
+                />
+              </TouchableOpacity>
+              <Text style={[styles.fabLabel, { color: isFocused ? colors.primary : colors['on-surface-variant'] }]}>
+                {config.label}
+              </Text>
+            </View>
           );
         }
 
@@ -65,21 +84,22 @@ export default function CustomTabBar({ state, navigation }) {
           <TouchableOpacity
             key={route.key}
             style={styles.tabItem}
-            onPress={() => handleTabPress(route, isFocused)}
+            onPress={() => navigation.navigate(route.name)}
             activeOpacity={0.7}
           >
             <Ionicons
-              name={routeIcons[route.name]}
-              size={22}
-              color={isFocused ? colors.onboardingAccent : colors.textLight}
+              name={isFocused ? config.activeIcon : config.icon}
+              size={24}
+              color={isFocused ? colors.primary : colors['on-surface-variant']}
             />
             <Text
               style={[
                 styles.tabLabel,
-                { color: isFocused ? colors.onboardingAccent : colors.textLight },
+                { color: isFocused ? colors.primary : colors['on-surface-variant'] },
+                isFocused && styles.tabLabelActive,
               ]}
             >
-              {routeLabels[route.name]}
+              {config.label}
             </Text>
           </TouchableOpacity>
         );
@@ -91,51 +111,69 @@ export default function CustomTabBar({ state, navigation }) {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: colors.card,
+    backgroundColor: colors['surface-container-lowest'],
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    paddingTop: 10,
-    paddingBottom: 20,
+    paddingTop: 8,
+    paddingBottom: Platform.OS === 'ios' ? 5 : 5,
     paddingHorizontal: 8,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 999,
+    // Drop shadow
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 10,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(191, 202, 186, 0.2)',
   },
   tabItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 4,
+    gap: 2,
   },
   tabLabel: {
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: '500',
+    letterSpacing: 0.3,
     marginTop: 2,
   },
-  scanButtonWrap: {
+  tabLabelActive: {
+    fontWeight: '700',
+  },
+  fabSlot: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'flex-start',
+    top: -(FAB_SIZE / 2 - 8),
   },
-  scanButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.onboardingAccent,
+  fabButton: {
+    width: FAB_SIZE,
+    height: FAB_SIZE,
+    borderRadius: FAB_SIZE / 2,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: -32,
-    shadowColor: colors.onboardingAccentDark,
+    borderWidth: 4,
+    borderColor: colors['surface-container-lowest'],
+    // FAB drop shadow
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 8,
   },
-  scanLabel: {
+  fabLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: colors.onboardingAccent,
-    marginTop: 2,
+    letterSpacing: 0.3,
+    marginTop: 4,
+    textAlign: 'center',
   },
 });
