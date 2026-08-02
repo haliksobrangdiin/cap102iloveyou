@@ -219,16 +219,21 @@ const ResultScreen = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      {/* ===== REDESIGNED HEADER ===== */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={handleBackPress}
           activeOpacity={0.7}
         >
-          <Ionicons name="arrow-back" size={24} color={colors.onPrimary} />
+          <Ionicons name="chevron-back" size={28} color={colors.onSurface} />
         </TouchableOpacity>
-        <Text style={styles.headerText}>Analysis Results</Text>
-        <View style={styles.headerRight} />
+        <Text style={[styles.headerText, { color: colors.onSurface }]}>
+          Analysis Results
+        </Text>
+        <TouchableOpacity style={styles.headerAction} activeOpacity={0.7}>
+          <Ionicons name="share-outline" size={24} color={colors.onSurface} />
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -381,32 +386,34 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     ...(Platform.OS === 'web' ? { height: '100vh', overflow: 'hidden' } : {}),
   },
+  // ===== REDESIGNED HEADER STYLES =====
   header: {
     width: '100%',
     minHeight: HEADER_HEIGHT,
-    backgroundColor: colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
+    backgroundColor: colors.surface,
   },
   backButton: {
-    padding: spacing.xs,
-    minHeight: MIN_TOUCH,
-    minWidth: MIN_TOUCH,
-    justifyContent: 'center',
-    alignItems: 'center',
+    padding: 4,
+    minWidth: 40,
   },
   headerText: {
-    ...typography.headlineSm,
-    fontSize: 16,
-    color: colors.onPrimary,
+    fontSize: 18,
+    fontWeight: '600',
     flex: 1,
     textAlign: 'center',
+    letterSpacing: 0.3,
   },
-  headerRight: {
-    width: 32,
+  headerAction: {
+    padding: 4,
+    minWidth: 40,
+    alignItems: 'flex-end',
   },
   scrollContent: {
     flexGrow: 1,

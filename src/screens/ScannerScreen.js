@@ -5,6 +5,7 @@ import {
   Text,
   TouchableOpacity,
   Image,
+  ImageBackground,
   StyleSheet,
   Platform,
   Alert,
@@ -51,6 +52,11 @@ const rounded = { sm: 4, DEFAULT: 8, md: 12, lg: 16, xl: 24, full: 9999 };
 const HEADER_HEIGHT = 56;
 const MIN_TOUCH = 48;
 const SCANNER_SIZE = width * 0.75;
+
+// ===== IMPORT YOUR BACKGROUND IMAGE =====
+import backgroundImage from '../assets/screen.png';
+// Option 2: Remote URL
+// const backgroundImage = { uri: 'https://your-image-url.com/screen.png' };
 
 const ScannerScreen = ({ navigation }) => {
   const [image, setImage] = useState(null);
@@ -145,136 +151,190 @@ const ScannerScreen = ({ navigation }) => {
   });
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerText}>Identify Plant Health</Text>
-      </View>
+    <ImageBackground
+      source={backgroundImage}
+      style={styles.backgroundImage}
+      resizeMode="cover"
+    >
+      {/* ===== BLACK FADE OVERLAY ===== */}
+      <View style={styles.overlay} />
+      
+      <SafeAreaView style={styles.container} edges={['top']}>
+        {/* ===== HEADER ===== */}
+        <View style={[styles.header, { backgroundColor: 'rgba(255, 248, 246, 0.92)' }]}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="chevron-back" size={28} color={colors.onSurface} />
+          </TouchableOpacity>
+          <Text style={[styles.headerText, { color: colors.onSurface }]}>
+            Scan Leaf
+          </Text>
+          <TouchableOpacity style={styles.headerAction} activeOpacity={0.7}>
+            <Ionicons name="information-circle-outline" size={24} color={colors.onSurface} />
+          </TouchableOpacity>
+        </View>
 
-      <View style={styles.content}>
-        {/* Description */}
-        <Text style={styles.description}>
-          Take a clear photo or upload an image of the cassava leaf to detect potential diseases using AI.
-        </Text>
+        <View style={styles.content}>
+          {/* Description - with semi-transparent background for readability */}
+          <View style={styles.descriptionWrapper}>
+            <Text style={styles.description}>
+              Take a clear photo or upload an image of the cassava leaf to detect potential diseases using AI.
+            </Text>
+          </View>
 
-        {/* Image Container with Scanner Overlay */}
-        <View style={styles.imageContainer}>
-          {image ? (
-            <>
-              <Image source={{ uri: image }} style={styles.image} />
-              <TouchableOpacity
-                style={styles.removeButton}
-                onPress={removeImage}
-                activeOpacity={0.85}
-                disabled={loading}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <Ionicons name="close" size={20} color={colors.onPrimary} />
-              </TouchableOpacity>
-            </>
-          ) : (
-            <View style={styles.placeholder}>
-              {/* Scanner Overlay */}
-              <View style={styles.scannerOverlay}>
-                {/* Top-Left Corner */}
-                <View style={[styles.corner, styles.cornerTopLeft]} />
-                {/* Top-Right Corner */}
-                <View style={[styles.corner, styles.cornerTopRight]} />
-                {/* Bottom-Left Corner */}
-                <View style={[styles.corner, styles.cornerBottomLeft]} />
-                {/* Bottom-Right Corner */}
-                <View style={[styles.corner, styles.cornerBottomRight]} />
-                
-                {/* Animated Scanning Line */}
-                <Animated.View
-                  style={[
-                    styles.scanLine,
-                    {
-                      transform: [{ translateY: scanLineTranslate }],
-                    },
-                  ]}
-                />
-              </View>
-
-              {/* Leaf Icon in Center */}
-              <View style={styles.placeholderIconWrapper}>
-                <View style={styles.placeholderIconBackground}>
-                  <Ionicons name="leaf-outline" size={64} color={colors.primaryFixedDim} />
+          {/* Image Container with Scanner Overlay */}
+          <View style={styles.imageContainer}>
+            {image ? (
+              <>
+                <Image source={{ uri: image }} style={styles.image} />
+                <TouchableOpacity
+                  style={styles.removeButton}
+                  onPress={removeImage}
+                  activeOpacity={0.85}
+                  disabled={loading}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons name="close" size={20} color={colors.onPrimary} />
+                </TouchableOpacity>
+              </>
+            ) : (
+              <View style={styles.placeholder}>
+                {/* Scanner Overlay */}
+                <View style={styles.scannerOverlay}>
+                  {/* Top-Left Corner */}
+                  <View style={[styles.corner, styles.cornerTopLeft]} />
+                  {/* Top-Right Corner */}
+                  <View style={[styles.corner, styles.cornerTopRight]} />
+                  {/* Bottom-Left Corner */}
+                  <View style={[styles.corner, styles.cornerBottomLeft]} />
+                  {/* Bottom-Right Corner */}
+                  <View style={[styles.corner, styles.cornerBottomRight]} />
+                  
+                  {/* Animated Scanning Line */}
+                  <Animated.View
+                    style={[
+                      styles.scanLine,
+                      {
+                        transform: [{ translateY: scanLineTranslate }],
+                      },
+                    ]}
+                  />
                 </View>
-              </View>
 
-              <Text style={styles.placeholderTitle}>Upload a Leaf Image</Text>
-              <Text style={styles.placeholderSubtext}>
-                Tap the camera or gallery button below to get started
-              </Text>
+                {/* Leaf Icon in Center */}
+                <View style={styles.placeholderIconWrapper}>
+                  <View style={styles.placeholderIconBackground}>
+                    <Ionicons name="leaf-outline" size={64} color={colors.primaryFixedDim} />
+                  </View>
+                </View>
+
+                <Text style={styles.placeholderTitle}>Upload a Leaf Image</Text>
+                <Text style={styles.placeholderSubtext}>
+                  Tap the camera or gallery button below to get started
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {loading && (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>Analyzing your leaf…</Text>
             </View>
           )}
-        </View>
 
-        {loading && (
-          <View style={styles.loadingContainer}>
-            <Text style={styles.loadingText}>Analyzing your leaf…</Text>
+          {/* Button Row */}
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={[styles.button, styles.cameraButton]}
+              onPress={takePhoto}
+              activeOpacity={0.85}
+              disabled={loading}
+            >
+              <Ionicons name="camera-outline" size={22} color={colors.onPrimary} />
+              <Text style={styles.buttonText}>Take Photo</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.button, styles.galleryButton]}
+              onPress={pickImage}
+              activeOpacity={0.85}
+              disabled={loading}
+            >
+              <Ionicons name="images-outline" size={22} color={colors.onSecondary} />
+              <Text style={styles.buttonText}>Upload Image</Text>
+            </TouchableOpacity>
           </View>
-        )}
 
-        {/* Button Row */}
-        <View style={styles.buttonContainer}>
+          {/* Primary Action */}
           <TouchableOpacity
-            style={[styles.button, styles.cameraButton]}
-            onPress={takePhoto}
+            style={[styles.analyzeButton, loading && styles.disabledButton]}
+            onPress={analyzeImage}
             activeOpacity={0.85}
             disabled={loading}
           >
-            <Ionicons name="camera-outline" size={22} color={colors.onPrimary} />
-            <Text style={styles.buttonText}>Take Photo</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.button, styles.galleryButton]}
-            onPress={pickImage}
-            activeOpacity={0.85}
-            disabled={loading}
-          >
-            <Ionicons name="images-outline" size={22} color={colors.onSecondary} />
-            <Text style={styles.buttonText}>Upload Image</Text>
+            <Ionicons name="scan-outline" size={24} color={colors.onPrimary} />
+            <Text style={styles.analyzeButtonText}>
+              {loading ? 'Analyzing…' : 'Analyze Leaf'}
+            </Text>
           </TouchableOpacity>
         </View>
-
-        {/* Primary Action */}
-        <TouchableOpacity
-          style={[styles.analyzeButton, loading && styles.disabledButton]}
-          onPress={analyzeImage}
-          activeOpacity={0.85}
-          disabled={loading}
-        >
-          <Ionicons name="scan-outline" size={24} color={colors.onPrimary} />
-          <Text style={styles.analyzeButtonText}>
-            {loading ? 'Analyzing…' : 'Analyze Leaf'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
+  // ===== BACKGROUND IMAGE =====
+  backgroundImage: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  // ===== BLACK FADE OVERLAY =====
+  overlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.25)', // Slight black fade - adjust opacity as needed
+  },
   container: {
     flex: 1,
-    backgroundColor: colors.surface,
+    backgroundColor: 'transparent',
     ...(Platform.OS === 'web' ? { height: '100vh', overflow: 'hidden' } : {}),
   },
+  // ===== HEADER =====
   header: {
     width: '100%',
     minHeight: HEADER_HEIGHT,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
+    backgroundColor: 'rgba(255, 248, 246, 0.92)',
+  },
+  backButton: {
+    padding: 4,
+    minWidth: 40,
   },
   headerText: {
-    ...typography.headlineSm,
-    color: colors.onPrimary,
+    fontSize: 18,
+    fontWeight: '600',
+    flex: 1,
+    textAlign: 'center',
+    letterSpacing: 0.3,
+  },
+  headerAction: {
+    padding: 4,
+    minWidth: 40,
+    alignItems: 'flex-end',
   },
   content: {
     flex: 1,
@@ -282,18 +342,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingBottom: 100,
   },
+  // ===== DESCRIPTION with background =====
+  descriptionWrapper: {
+    backgroundColor: 'rgba(255, 255, 255, 0.88)',
+    borderRadius: rounded.DEFAULT,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.xl,
+    width: '100%',
+  },
   description: {
     ...typography.bodyMd,
     color: colors.onSurfaceVariant,
     textAlign: 'center',
-    marginBottom: spacing.xl,
-    paddingHorizontal: spacing.sm,
     lineHeight: 24,
   },
   imageContainer: {
     width: '100%',
     height: 340,
-    backgroundColor: colors.surfaceContainerLow,
+    backgroundColor: 'rgba(255, 241, 237, 0.92)',
     borderRadius: rounded.md,
     borderWidth: 2,
     borderColor: colors.primaryFixedDim,
@@ -400,7 +467,7 @@ const styles = StyleSheet.create({
     width: 90,
     height: 90,
     borderRadius: 45,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
