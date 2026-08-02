@@ -58,13 +58,11 @@ const OnboardingScreen = ({ navigation }) => {
   ];
 
   useEffect(() => {
-    // Animate loading bar
     Animated.timing(loadingProgress, {
       toValue: 100,
       duration: 2500,
       useNativeDriver: false,
     }).start(() => {
-      // After loading completes, fade out splash
       Animated.timing(splashFade, {
         toValue: 0,
         duration: 500,
@@ -97,16 +95,13 @@ const OnboardingScreen = ({ navigation }) => {
       return 'Next';
     };
 
-    // Determine if white plate should be shown
     const showWhitePlate = !isFirstSlide && !isLast;
 
     return (
       <View style={styles.slide}>
         <StatusBar barStyle="dark-content" />
 
-        {/* Main Content - Centered vertically */}
         <View style={styles.contentWrapper}>
-          {/* Hero Image Section */}
           <View style={styles.imageContainer}>
             <View
               style={
@@ -115,7 +110,6 @@ const OnboardingScreen = ({ navigation }) => {
             >
               <Image source={item.image} style={styles.mainImage} resizeMode="contain" />
 
-              {/* Scanner Overlay - Only for second slide (index 1) */}
               {isSecondSlide && (
                 <View style={styles.scannerOverlay}>
                   <View style={styles.scannerCornerTL} />
@@ -126,7 +120,6 @@ const OnboardingScreen = ({ navigation }) => {
                 </View>
               )}
 
-              {/* AI Tag - Only for second slide (index 1) */}
               {isSecondSlide && (
                 <View style={styles.aiTag}>
                   <Ionicons name="bulb-outline" size={14} color="#FFFFFF" />
@@ -136,11 +129,10 @@ const OnboardingScreen = ({ navigation }) => {
             </View>
           </View>
 
-          {/* Content Section */}
           <View style={styles.contentContainer}>
             {isFirstSlide ? (
               <>
-                <Text style={styles.titleFirst}>{item.title}</Text>
+                {item.title && <Text style={styles.titleFirst}>{item.title}</Text>}
                 <Text style={styles.subtitleFirst}>{item.subtitle}</Text>
                 <Text style={styles.descriptionFirst}>{item.description}</Text>
               </>
@@ -156,7 +148,6 @@ const OnboardingScreen = ({ navigation }) => {
           </View>
         </View>
 
-        {/* Navigation Section - Fixed at bottom */}
         <View style={styles.navigationContainer}>
           <View style={styles.dotsContainer}>
             {slides.map((_, i) => {
@@ -206,7 +197,6 @@ const OnboardingScreen = ({ navigation }) => {
     );
   };
 
-  // Render Splash Screen
   const renderSplash = () => {
     const loadingWidth = loadingProgress.interpolate({
       inputRange: [0, 100],
@@ -231,7 +221,6 @@ const OnboardingScreen = ({ navigation }) => {
         </View>
 
         <View style={styles.splashContent}>
-          {/* Logo - Big emblem without octagon background */}
           <View style={styles.splashLogoWrapper}>
             <Image
               source={require('../assets/emblem.png')}
@@ -240,7 +229,6 @@ const OnboardingScreen = ({ navigation }) => {
             />
           </View>
 
-          {/* Brand Text */}
           <View style={styles.splashTextContainer}>
             <Text style={styles.splashTitle}>RootCare</Text>
             <Text style={styles.splashSubtitle}>
@@ -248,7 +236,6 @@ const OnboardingScreen = ({ navigation }) => {
             </Text>
           </View>
 
-          {/* Loading Section */}
           <View style={styles.splashLoadingContainer}>
             <View style={styles.splashLoadingBarTrack}>
               <Animated.View
@@ -305,7 +292,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFF8F6',
   },
-  // ========== SPLASH SCREEN STYLES ==========
   splashContainer: {
     flex: 1,
     backgroundColor: '#FFF8F6',
@@ -363,7 +349,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   splashLogo: {
-    width: 350,  
+    width: 350,
     height: 350,
   },
   splashTextContainer: {
@@ -441,7 +427,6 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     backgroundColor: 'rgba(122, 86, 73, 0.1)',
   },
-  // ========== ONBOARDING SLIDES STYLES ==========
   slide: {
     width,
     height: height,
@@ -460,7 +445,6 @@ const styles = StyleSheet.create({
     position: 'relative',
     marginBottom: 16,
   },
-  // First slide - Logo without white plate
   logoWrapperFirst: {
     width: 160,
     height: 160,
@@ -482,7 +466,6 @@ const styles = StyleSheet.create({
     borderRadius: 100,
     backgroundColor: 'rgba(13, 99, 27, 0.05)',
   },
-  // Image wrapper with white plate
   imageWrapper: {
     width: '100%',
     maxWidth: 280,
@@ -499,7 +482,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(191, 202, 186, 0.2)',
   },
-  // Image wrapper without white plate (for first and last slides)
   imageWrapperPlain: {
     width: '100%',
     maxWidth: 280,
@@ -599,13 +581,11 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
-  // Content Section
   contentContainer: {
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 4,
   },
-  // First slide text styles
   titleFirst: {
     fontSize: 32,
     fontWeight: '700',
@@ -627,7 +607,6 @@ const styles = StyleSheet.create({
     color: '#707A6C',
     textAlign: 'center',
   },
-  // Other slides text styles
   title: {
     fontSize: 26,
     fontWeight: '700',
@@ -649,7 +628,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 4,
   },
-  // Navigation - Fixed at bottom
   navigationContainer: {
     alignItems: 'center',
     gap: 16,

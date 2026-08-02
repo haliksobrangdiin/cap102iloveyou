@@ -306,7 +306,7 @@ const HomeScreen = ({ navigation }) => {
       >
         {/* Greeting & Weather */}
         <View style={styles.greetingSection}>
-          <View>
+          <View style={styles.greetingTextBlock}>
             <Text style={styles.greetingTitle}>Good morning, Farmer!</Text>
             <Text style={styles.greetingSubtitle}>Your crops are thriving today.</Text>
           </View>
@@ -377,13 +377,13 @@ const HomeScreen = ({ navigation }) => {
             activeOpacity={0.8}
           >
             <View style={styles.bentoCardHeader}>
-              <View style={styles.bentoIconContainer}>
-                <Ionicons name="cloud-done-outline" size={20} color="#774C00" />
+              <View style={styles.weatherAlertIconContainer}>
+                <Ionicons name="cloud-done-outline" size={20} color="#FFF8F6" />
               </View>
             </View>
             <View style={styles.bentoCardFooter}>
-              <Text style={styles.bentoLabel}>Weather Alerts</Text>
-              <Text style={styles.bentoValue}>Perfect Conditions</Text>
+              <Text style={styles.weatherAlertLabel}>Weather Alerts</Text>
+              <Text style={styles.weatherAlertValue}>Perfect Conditions</Text>
               <Text style={styles.bentoDescription}>
                 Ideal for fertilizer application today.
               </Text>
@@ -523,8 +523,12 @@ const styles = StyleSheet.create({
   greetingSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-end',
+    alignItems: 'flex-start',
     marginBottom: 24,
+  },
+  greetingTextBlock: {
+    flex: 1,
+    paddingRight: 12,
   },
   greetingTitle: {
     fontSize: 28,
@@ -543,6 +547,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 12,
     alignItems: 'center',
+    minWidth: 72,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -641,6 +646,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  weatherAlertIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 248, 246, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   bentoBadge: {
     fontSize: 12,
     fontWeight: '700',
@@ -660,6 +673,18 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '600',
     color: '#2C160E',
+    fontFamily: 'Montserrat_600SemiBold',
+  },
+  weatherAlertLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'rgba(255, 248, 246, 0.85)',
+    fontFamily: 'OpenSans_600SemiBold',
+  },
+  weatherAlertValue: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#FFFFFF',
     fontFamily: 'Montserrat_600SemiBold',
   },
   bentoPrice: {

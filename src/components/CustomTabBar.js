@@ -35,7 +35,7 @@ export default function CustomTabBar({ state, navigation }) {
               activeOpacity={0.85}
             >
               <View style={styles.scanButton}>
-                <Ionicons name="scan" size={26} color={colors.textWhite} />
+                <Ionicons name="scan-outline" size={26} color={colors.textWhite} />
               </View>
               <Text style={styles.scanLabel}>Scan Leaves</Text>
             </TouchableOpacity>
