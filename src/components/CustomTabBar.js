@@ -49,6 +49,11 @@ export default function CustomTabBar({ state, navigation }) {
     Scanner: { icon: 'scan-outline', activeIcon: 'scan', label: 'Scan Leaves', isCenter: true },
     History: { icon: 'time-outline', activeIcon: 'time', label: 'Scan History' },
     Settings: { icon: 'settings-outline', activeIcon: 'settings', label: 'Settings' },
+    // Marketplace has no tab button (tabBarButton: () => null in MainTabs.js)
+    // but it's still a registered route, so it still shows up in state.routes.
+    // Mapping it here (and marking it hidden) stops the tab bar from crashing
+    // when it tries to look up an icon/label for it.
+    Marketplace: { icon: 'storefront-outline', activeIcon: 'storefront', label: 'Marketplace', hidden: true },
   };
 
   const currentRoute = state.routes[state.index].name;
@@ -58,8 +63,14 @@ export default function CustomTabBar({ state, navigation }) {
       {state.routes.map((route, index) => {
         const isFocused = state.index === index;
         const config = routeConfig[route.name];
-        
-        if (config?.isCenter) {
+
+        // Skip rendering for hidden routes (e.g. Marketplace) or any route
+        // that isn't mapped in routeConfig yet, instead of crashing.
+        if (!config || config.hidden) {
+          return null;
+        }
+
+        if (config.isCenter) {
           return (
             <View key={route.key} style={styles.fabSlot}>
               <TouchableOpacity

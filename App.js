@@ -1,26 +1,23 @@
 ﻿// App.js
-import React from 'react';
+import 'react-native-gesture-handler';
+import React, { useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
 import Toast from 'react-native-toast-message';
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import MainTabs from './src/navigation/MainTabs';
 
-const Stack = createStackNavigator();
-
 const App = () => {
-  console.log(' App starting...');
-  
+  const [isOnboarding, setIsOnboarding] = useState(true);
+
   return (
-    <>
-      <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-          <Stack.Screen name="MainTabs" component={MainTabs} />
-        </Stack.Navigator>
-      </NavigationContainer>
+    <NavigationContainer>
+      {isOnboarding ? (
+        <OnboardingScreen onFinish={() => setIsOnboarding(false)} />
+      ) : (
+        <MainTabs />
+      )}
       <Toast />
-    </>
+    </NavigationContainer>
   );
 };
 

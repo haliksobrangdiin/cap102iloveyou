@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
 
-const OnboardingScreen = ({ navigation }) => {
+const OnboardingScreen = ({ onFinish }) => {
   const [showSplash, setShowSplash] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef(null);
@@ -81,7 +81,7 @@ const OnboardingScreen = ({ navigation }) => {
       });
       setCurrentIndex(currentIndex + 1);
     } else {
-      navigation.replace('MainTabs');
+      onFinish?.();
     }
   };
 

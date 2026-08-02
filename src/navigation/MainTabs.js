@@ -7,6 +7,7 @@ import ChatbotScreen from '../screens/ChatbotScreen';
 import ScannerStack from './ScannerStack';
 import HistoryScreen from '../screens/ScanHistory';
 import SettingsScreen from '../screens/SettingsScreen';
+import MarketplaceScreen from '../screens/MarketplaceScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -29,6 +30,14 @@ export default function MainTabs() {
       />
       <Tab.Screen name="History" component={HistoryScreen} />
       <Tab.Screen name="Settings" component={SettingsScreen} />
+      {/* Marketplace - hidden from tab bar */}
+      <Tab.Screen 
+        name="Marketplace" 
+        component={MarketplaceScreen}
+        options={{
+          tabBarButton: () => null, // Hide from tab bar
+        }}
+      />
     </Tab.Navigator>
   );
 }
