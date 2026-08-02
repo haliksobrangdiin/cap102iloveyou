@@ -10,6 +10,8 @@ import {
   Dimensions,
   Platform,
   Animated,
+  Modal,
+  FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,6 +28,7 @@ import alertsImage from '../assets/alerts.png';
 
 const HomeScreen = ({ navigation }) => {
   const scanScale = useState(new Animated.Value(1))[0];
+  const [weatherModalVisible, setWeatherModalVisible] = useState(false);
   
   // ===== DYNAMIC HEALTH DATA =====
   const [healthData, setHealthData] = useState({
@@ -35,6 +38,146 @@ const HomeScreen = ({ navigation }) => {
     area: '12.4',
     risk: 'Low',
   });
+
+  // ===== CALENDAR DATA =====
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const currentMonth = selectedDate.getMonth();
+  const currentYear = selectedDate.getFullYear();
+  
+  const getDaysInMonth = (month, year) => {
+    return new Date(year, month + 1, 0).getDate();
+  };
+
+  const getFirstDayOfMonth = (month, year) => {
+    return new Date(year, month, 1).getDay();
+  };
+
+  const renderCalendar = () => {
+    const daysInMonth = getDaysInMonth(currentMonth, currentYear);
+    const firstDay = getFirstDayOfMonth(currentMonth, currentYear);
+    const days = [];
+    const today = new Date();
+
+    // Empty days for padding
+    for (let i = 0; i < firstDay; i++) {
+      days.push(<View key={`empty-${i}`} style={styles.calendarDayEmpty} />);
+    }
+
+    // Actual days
+    for (let i = 1; i <= daysInMonth; i++) {
+      const isToday = i === today.getDate() && 
+                      currentMonth === today.getMonth() && 
+                      currentYear === today.getFullYear();
+      const isWeekend = new Date(currentYear, currentMonth, i).getDay() === 0 || 
+                        new Date(currentYear, currentMonth, i).getDay() === 6;
+      
+      // Mark good planting days (e.g., 5, 10, 15, 20, 25)
+      const isGoodDay = [5, 10, 15, 20, 25].includes(i);
+      
+      days.push(
+        <TouchableOpacity 
+          key={`day-${i}`} 
+          style={[
+            styles.calendarDay,
+            isToday && styles.calendarDayToday,
+            isGoodDay && styles.calendarDayGood,
+          ]}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            // Select date
+          }}
+        >
+          <Text style={[
+            styles.calendarDayText,
+            isToday && styles.calendarDayTextToday,
+            isWeekend && styles.calendarDayTextWeekend,
+            isGoodDay && styles.calendarDayTextGood,
+          ]}>
+            {i}
+          </Text>
+          {isGoodDay && (
+            <View style={styles.calendarDot} />
+          )}
+        </TouchableOpacity>
+      );
+    }
+
+    return days;
+  };
+
+  // ===== WEATHER ALERT DATA =====
+  const weatherAlerts = [
+    {
+      id: '1',
+      type: 'Rain Advisory',
+      severity: 'Moderate',
+      icon: 'rainy',
+      title: 'Light Rain Expected',
+      description: 'Light rain expected in your area tomorrow morning. Good for crop growth.',
+      recommendation: 'Consider applying fertilizer before the rain.',
+      time: 'Tomorrow, 6:00 AM',
+    },
+    {
+      id: '2',
+      type: 'Sunny',
+      severity: 'Good',
+      icon: 'sunny',
+      title: 'Perfect Growing Conditions',
+      description: 'Sunny with moderate temperatures. Ideal for cassava growth.',
+      recommendation: 'Great day for field work and planting.',
+      time: 'Today, 12:00 PM',
+    },
+  ];
+
+  // ===== FERTILIZER TIPS =====
+  const fertilizerTips = [
+    {
+      id: '1',
+      title: '🌱 Compost Application',
+      description: 'Apply 5-10 tons of compost per hectare 2 weeks before planting.',
+      timing: 'Before Planting',
+    },
+    {
+      id: '2',
+      title: '🧪 Nitrogen Fertilizer',
+      description: 'Apply 60-80 kg N/ha at 4-6 weeks after planting for optimal growth.',
+      timing: '4-6 Weeks After Planting',
+    },
+    {
+      id: '3',
+      title: '💧 Potassium & Phosphorus',
+      description: 'Apply 50-100 kg K2O/ha and 40-60 kg P2O5/ha during early growth.',
+      timing: '2-3 Months After Planting',
+    },
+  ];
+
+  // ===== ROOT CROP CARE TIPS =====
+  const cropCareTips = [
+    {
+      id: '1',
+      icon: '🌿',
+      title: 'Weed Control',
+      description: 'Regular weeding helps reduce competition for nutrients and water.',
+    },
+    {
+      id: '2',
+      icon: '💧',
+      title: 'Water Management',
+      description: 'Maintain soil moisture but avoid waterlogging. Water deeply once a week.',
+    },
+    {
+      id: '3',
+      icon: '🧪',
+      title: 'Pest Management',
+      description: 'Monitor regularly for pest infestation. Use organic pesticides if needed.',
+    },
+    {
+      id: '4',
+      icon: '🌾',
+      title: 'Harvesting',
+      description: 'Cassava is ready 8-12 months after planting. Check by brushing soil away.',
+    },
+  ];
 
   const startPulse = () => {
     Animated.sequence([
@@ -57,17 +200,11 @@ const HomeScreen = ({ navigation }) => {
 
   // ===== DYNAMIC PROGRESS CIRCLE COMPONENT =====
   const ProgressCircle = ({ percentage, size = 80, strokeWidth = 6, color = '#0D631B' }) => {
-    const radius = (size - strokeWidth) / 2;
-    const circumference = radius * 2 * Math.PI;
-    const progress = (percentage / 100) * circumference;
-    const halfCircle = circumference / 2;
-
-    // Determine status color based on percentage
     const getColor = () => {
-      if (percentage >= 80) return '#0D631B';  // Green - Healthy
-      if (percentage >= 60) return '#F59E0B';  // Yellow - Moderate
-      if (percentage >= 40) return '#F97316';  // Orange - Warning
-      return '#DC2626';  // Red - Critical
+      if (percentage >= 80) return '#0D631B';
+      if (percentage >= 60) return '#F59E0B';
+      if (percentage >= 40) return '#F97316';
+      return '#DC2626';
     };
 
     const ringColor = color || getColor();
@@ -75,7 +212,6 @@ const HomeScreen = ({ navigation }) => {
     return (
       <View style={[styles.healthRing, { width: size, height: size, borderRadius: size / 2 }]}>
         <View style={[styles.healthRingBackground, { width: size, height: size, borderRadius: size / 2 }]}>
-          {/* Background circle (gray track) */}
           <View
             style={[
               styles.ringTrack,
@@ -88,8 +224,6 @@ const HomeScreen = ({ navigation }) => {
               },
             ]}
           />
-          
-          {/* Progress circle - Left half */}
           {percentage > 50 && (
             <View
               style={[
@@ -106,8 +240,6 @@ const HomeScreen = ({ navigation }) => {
               ]}
             />
           )}
-          
-          {/* Progress circle - Right half */}
           <View
             style={[
               styles.ringHalf,
@@ -122,8 +254,6 @@ const HomeScreen = ({ navigation }) => {
               },
             ]}
           />
-
-          {/* Center circle with text */}
           <View
             style={[
               styles.healthRingCenter,
@@ -156,6 +286,162 @@ const HomeScreen = ({ navigation }) => {
     if (percentage >= 60) return 'Stable';
     if (percentage >= 40) return 'Caution';
     return 'Critical';
+  };
+
+  // ===== WEATHER ALERT MODAL =====
+  const WeatherAlertModal = () => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    const changeMonth = (offset) => {
+      const newDate = new Date(selectedDate);
+      newDate.setMonth(newDate.getMonth() + offset);
+      setSelectedDate(newDate);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    };
+
+    return (
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={weatherModalVisible}
+        onRequestClose={() => setWeatherModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <View style={styles.modalHeaderLeft}>
+                <Ionicons name="cloud-outline" size={24} color="#0D631B" />
+                <Text style={styles.modalHeaderTitle}>Weather & Care Guide</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setWeatherModalVisible(false);
+                }}
+              >
+                <Ionicons name="close" size={24} color="#2C160E" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView 
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.modalScrollContent}
+            >
+              {/* Weather Summary */}
+              <View style={styles.weatherSummary}>
+                <View style={styles.weatherSummaryLeft}>
+                  <Ionicons name="sunny" size={32} color="#F59E0B" />
+                  <View>
+                    <Text style={styles.weatherSummaryTemp}>28°C</Text>
+                    <Text style={styles.weatherSummaryDesc}>Sunny • Perfect Conditions</Text>
+                  </View>
+                </View>
+                <View style={styles.weatherSummaryRight}>
+                  <Text style={styles.weatherSummaryLabel}>Humidity</Text>
+                  <Text style={styles.weatherSummaryValue}>65%</Text>
+                </View>
+              </View>
+
+              {/* ===== CALENDAR SECTION ===== */}
+              <View style={styles.calendarSection}>
+                <View style={styles.calendarHeader}>
+                  <TouchableOpacity onPress={() => changeMonth(-1)}>
+                    <Ionicons name="chevron-back" size={20} color="#2C160E" />
+                  </TouchableOpacity>
+                  <Text style={styles.calendarTitle}>
+                    {months[currentMonth]} {currentYear}
+                  </Text>
+                  <TouchableOpacity onPress={() => changeMonth(1)}>
+                    <Ionicons name="chevron-forward" size={20} color="#2C160E" />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Calendar Grid */}
+                <View style={styles.calendarGrid}>
+                  {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => (
+                    <View key={day} style={styles.calendarDayHeader}>
+                      <Text style={styles.calendarDayHeaderText}>{day}</Text>
+                    </View>
+                  ))}
+                  {renderCalendar()}
+                </View>
+
+                <View style={styles.calendarLegend}>
+                  <View style={styles.legendItem}>
+                    <View style={[styles.legendDot, styles.legendGood]} />
+                    <Text style={styles.legendText}>Good Planting Day</Text>
+                  </View>
+                  <View style={styles.legendItem}>
+                    <View style={[styles.legendDot, styles.legendToday]} />
+                    <Text style={styles.legendText}>Today</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* ===== FERTILIZER TIPS ===== */}
+              <View style={styles.sectionContainer}>
+                <View style={styles.sectionHeader}>
+                  <Ionicons name="flask-outline" size={22} color="#0D631B" />
+                  <Text style={styles.sectionTitle}>Fertilizer Application Tips</Text>
+                </View>
+                {fertilizerTips.map((tip) => (
+                  <View key={tip.id} style={styles.tipCard}>
+                    <Text style={styles.tipTitle}>{tip.title}</Text>
+                    <Text style={styles.tipDescription}>{tip.description}</Text>
+                    <View style={styles.tipTiming}>
+                      <Ionicons name="time-outline" size={14} color="#F59E0B" />
+                      <Text style={styles.tipTimingText}>{tip.timing}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+
+              {/* ===== ROOT CROP CARE TIPS ===== */}
+              <View style={styles.sectionContainer}>
+                <View style={styles.sectionHeader}>
+                  <Ionicons name="leaf-outline" size={22} color="#0D631B" />
+                  <Text style={styles.sectionTitle}>Root Crop Care Guide</Text>
+                </View>
+                <View style={styles.careGrid}>
+                  {cropCareTips.map((tip) => (
+                    <View key={tip.id} style={styles.careCard}>
+                      <Text style={styles.careIcon}>{tip.icon}</Text>
+                      <Text style={styles.careTitle}>{tip.title}</Text>
+                      <Text style={styles.careDescription}>{tip.description}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+
+              {/* Weather Alerts */}
+              <View style={styles.sectionContainer}>
+                <View style={styles.sectionHeader}>
+                  <Ionicons name="warning-outline" size={22} color="#F97316" />
+                  <Text style={styles.sectionTitle}>Weather Alerts</Text>
+                </View>
+                {weatherAlerts.map((alert) => (
+                  <View key={alert.id} style={styles.alertItem}>
+                    <View style={styles.alertIconContainer}>
+                      <Ionicons name={alert.icon === 'rainy' ? 'rainy-outline' : 'sunny-outline'} size={24} color="#0D631B" />
+                    </View>
+                    <View style={styles.alertContent}>
+                      <Text style={styles.alertTitle}>{alert.title}</Text>
+                      <Text style={styles.alertDescription}>{alert.description}</Text>
+                      <View style={styles.alertTime}>
+                        <Ionicons name="time-outline" size={14} color="#707A6C" />
+                        <Text style={styles.alertTimeText}>{alert.time}</Text>
+                      </View>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    );
   };
 
   return (
@@ -193,7 +479,6 @@ const HomeScreen = ({ navigation }) => {
             <Text style={styles.greetingSubtitle}>Your crops are thriving today.</Text>
           </View>
           
-          {/* Weather Card with Image */}
           <ImageBackground
             source={weatherImage}
             style={styles.weatherCard}
@@ -241,7 +526,6 @@ const HomeScreen = ({ navigation }) => {
 
         {/* Bento Grid Quick Actions */}
         <View style={styles.bentoGrid}>
-          {/* Marketplace Card with Image */}
           <TouchableOpacity 
             style={styles.bentoCardWrapper}
             onPress={() => {
@@ -274,10 +558,13 @@ const HomeScreen = ({ navigation }) => {
             </ImageBackground>
           </TouchableOpacity>
 
-          {/* Weather Alerts Card with Image */}
+          {/* Weather Alerts Card - Opens Modal */}
           <TouchableOpacity 
             style={styles.bentoCardWrapper}
-            onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setWeatherModalVisible(true);
+            }}
             activeOpacity={0.8}
           >
             <ImageBackground
@@ -304,7 +591,7 @@ const HomeScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* ===== DYNAMIC HEALTH CARD ===== */}
+        {/* Health Card */}
         <View style={styles.healthCard}>
           <View style={styles.healthHeader}>
             <Text style={styles.healthTitle}>Overall Health</Text>
@@ -374,6 +661,9 @@ const HomeScreen = ({ navigation }) => {
           </View>
         </View>
       </ScrollView>
+
+      {/* Weather Alert Modal */}
+      <WeatherAlertModal />
     </SafeAreaView>
   );
 };
@@ -463,7 +753,7 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: '#40493D',
   },
-  // ========== WEATHER CARD WITH IMAGE ==========
+  // ========== WEATHER CARD ==========
   weatherCard: {
     borderRadius: 14,
     overflow: 'hidden',
@@ -553,7 +843,6 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 16,
   },
-  // ========== BENTO CARD WRAPPER ==========
   bentoCardWrapper: {
     flex: 1,
     borderRadius: 16,
@@ -572,7 +861,6 @@ const styles = StyleSheet.create({
   bentoCardImage: {
     borderRadius: 16,
   },
-  // ========== MARKETPLACE CARD ==========
   marketplaceOverlay: {
     flex: 1,
     padding: 14,
@@ -582,7 +870,6 @@ const styles = StyleSheet.create({
   marketplaceCard: {
     backgroundColor: 'transparent',
   },
-  // ========== WEATHER ALERTS CARD ==========
   weatherAlertOverlay: {
     flex: 1,
     padding: 14,
@@ -656,7 +943,7 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: 'rgba(255, 255, 255, 0.85)',
   },
-  // ========== HEALTH CARD - DYNAMIC ==========
+  // ========== HEALTH CARD ==========
   healthCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
@@ -688,7 +975,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 16,
   },
-  // ===== DYNAMIC PROGRESS CIRCLE =====
   healthRing: {
     justifyContent: 'center',
     alignItems: 'center',
@@ -810,6 +1096,325 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '500',
     color: '#40493D',
+  },
+
+  // ========== WEATHER ALERT MODAL ==========
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFF8F6',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    maxHeight: '92%',
+    minHeight: '60%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  modalHeaderTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#2C160E',
+  },
+  modalCloseButton: {
+    padding: 4,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFF1ED',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalScrollContent: {
+    paddingBottom: 20,
+  },
+  // Weather Summary
+  weatherSummary: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  weatherSummaryLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  weatherSummaryTemp: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#2C160E',
+  },
+  weatherSummaryDesc: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: '#40493D',
+  },
+  weatherSummaryRight: {
+    alignItems: 'center',
+  },
+  weatherSummaryLabel: {
+    fontSize: 12,
+    fontWeight: '400',
+    color: '#707A6C',
+  },
+  weatherSummaryValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2C160E',
+  },
+  // ===== CALENDAR =====
+  calendarSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  calendarHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  calendarTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2C160E',
+  },
+  calendarGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  calendarDayHeader: {
+    width: '14.28%',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  calendarDayHeaderText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#707A6C',
+  },
+  calendarDay: {
+    width: '14.28%',
+    alignItems: 'center',
+    paddingVertical: 6,
+    borderRadius: 20,
+    position: 'relative',
+  },
+  calendarDayEmpty: {
+    width: '14.28%',
+    paddingVertical: 6,
+  },
+  calendarDayToday: {
+    backgroundColor: '#0D631B',
+  },
+  calendarDayGood: {
+    backgroundColor: 'rgba(13, 99, 27, 0.1)',
+  },
+  calendarDayText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#2C160E',
+  },
+  calendarDayTextToday: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  calendarDayTextWeekend: {
+    color: '#DC2626',
+  },
+  calendarDayTextGood: {
+    color: '#0D631B',
+    fontWeight: '600',
+  },
+  calendarDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#0D631B',
+    position: 'absolute',
+    bottom: 0,
+  },
+  calendarLegend: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 16,
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(191, 202, 186, 0.3)',
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  legendDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  legendGood: {
+    backgroundColor: 'rgba(13, 99, 27, 0.3)',
+  },
+  legendToday: {
+    backgroundColor: '#0D631B',
+  },
+  legendText: {
+    fontSize: 11,
+    color: '#40493D',
+  },
+  // ===== SECTIONS =====
+  sectionContainer: {
+    marginBottom: 16,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2C160E',
+  },
+  // ===== FERTILIZER TIPS =====
+  tipCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  tipTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2C160E',
+    marginBottom: 4,
+  },
+  tipDescription: {
+    fontSize: 13,
+    color: '#40493D',
+    marginBottom: 6,
+    lineHeight: 18,
+  },
+  tipTiming: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  tipTimingText: {
+    fontSize: 11,
+    color: '#F59E0B',
+    fontWeight: '500',
+  },
+  // ===== CROP CARE =====
+  careGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  careCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 14,
+    width: '48%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  careIcon: {
+    fontSize: 24,
+    marginBottom: 6,
+  },
+  careTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#2C160E',
+    marginBottom: 4,
+  },
+  careDescription: {
+    fontSize: 11,
+    color: '#40493D',
+    lineHeight: 16,
+  },
+  // ===== WEATHER ALERTS =====
+  alertItem: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
+    gap: 12,
+  },
+  alertIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(13, 99, 27, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  alertContent: {
+    flex: 1,
+  },
+  alertTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2C160E',
+    marginBottom: 2,
+  },
+  alertDescription: {
+    fontSize: 13,
+    color: '#40493D',
+    marginBottom: 4,
+  },
+  alertTime: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  alertTimeText: {
+    fontSize: 11,
+    color: '#707A6C',
   },
 });
 
