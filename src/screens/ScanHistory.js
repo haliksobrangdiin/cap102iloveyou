@@ -1,3 +1,4 @@
+// screens/HistoryScreen.js - Complete with Filter Modal
 import React, { useState } from 'react';
 import {
   View,
@@ -12,7 +13,7 @@ import {
   ScrollView,
   TextInput,
   ActivityIndicator,
-  Share,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,8 +21,158 @@ import * as Haptics from 'expo-haptics';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 
+const { width } = Dimensions.get('window');
+
+// RootCare Design System tokens
+const colors = {
+  surface: '#FFF8F6',
+  'surface-dim': '#FBD1C4',
+  'surface-container': '#FFE9E3',
+  'surface-container-low': '#FFF1ED',
+  'surface-container-high': '#FFE2DA',
+  'on-surface': '#2C160E',
+  'on-surface-variant': '#40493D',
+  outline: '#707A6C',
+  'outline-variant': '#BFCABA',
+  primary: '#0D631B',
+  'on-primary': '#FFFFFF',
+  'primary-container': '#2E7D32',
+  'primary-fixed-dim': '#88D982',
+  secondary: '#7A5649',
+  'on-secondary': '#FFFFFF',
+  tertiary: '#774C00',
+  error: '#BA1A1A',
+  background: '#FFF8F6',
+};
+
+const typography = {
+  'headline-sm': { fontFamily: 'Montserrat', fontSize: 20, fontWeight: '600', lineHeight: 28 },
+  'body-md': { fontFamily: 'Open Sans', fontSize: 16, fontWeight: '400', lineHeight: 24 },
+  'label-lg': { fontFamily: 'Open Sans', fontSize: 14, fontWeight: '600', lineHeight: 20, letterSpacing: 0.1 },
+  'label-sm': { fontFamily: 'Open Sans', fontSize: 12, fontWeight: '500', lineHeight: 16 },
+};
+
+const spacing = { xs: 4, sm: 12, md: 16, lg: 24, xl: 32, marginMobile: 20 };
+
+const rounded = { sm: 4, DEFAULT: 8, md: 12, lg: 16, xl: 24, full: 9999 };
+
+const HEADER_HEIGHT = 56;
+const MIN_TOUCH = 48;
+
+// Helper function to get badge style
+const getTypeBadgeStyle = (type) => {
+  switch(type) {
+    case 'Viral': return styles.viralBadge;
+    case 'Fungal': return styles.fungalBadge;
+    case 'Bacterial': return styles.bacterialBadge;
+    case 'Pest': return styles.pestBadge;
+    case 'Healthy': return styles.healthyBadge;
+    default: return {};
+  }
+};
+
+const getSeverityColor = (severity) => {
+  switch(severity) {
+    case 'High': return '#E74C3C';
+    case 'Medium': return '#F39C12';
+    case 'Low': return '#27AE60';
+    case 'None': return '#2ECC71';
+    default: return colors['on-surface-variant'];
+  }
+};
+
+const getAccuracyColor = (accuracy) => {
+  if (accuracy >= 90) return styles.accuracyHigh;
+  if (accuracy >= 70) return styles.accuracyMedium;
+  return styles.accuracyLow;
+};
+
+// Sample data
+const sampleData = [
+  {
+    id: '1',
+    title: 'Cassava Mosaic Disease',
+    subtitle: 'Viral Infection Detected',
+    detail: 'Severity: High',
+    extra: 'Scanned: Jan 15, 2024 • 2:30 PM',
+    image: require('../assets/CassavaMosaic.png'),
+    isArchived: false,
+    isSaved: false,
+    archivedAt: null,
+    createdAt: '2024-01-15T14:30:00',
+    diseaseType: 'Viral',
+    severity: 'High',
+    accuracy: 94.7,
+    description: 'A viral disease that causes yellow mosaic patterns on leaves. Infected plants show stunted growth and reduced yield.',
+    treatment: 'Remove infected plants immediately. Use resistant varieties and control whitefly vectors with appropriate pesticides.',
+    prevention: 'Plant certified disease-free cuttings. Practice crop rotation and maintain proper field sanitation.',
+    symptoms: 'Yellow mosaic patterns on leaves, stunted growth, distorted leaves.',
+    notes: 'Found in the northern field. Affected about 30% of the crop.',
+  },
+  {
+    id: '2',
+    title: 'Brown Spot Disease',
+    subtitle: 'Fungal Infection Detected',
+    detail: 'Severity: Medium',
+    extra: 'Scanned: Jan 14, 2024 • 11:15 AM',
+    image: require('../assets/BrownSpot.png'),
+    isArchived: false,
+    isSaved: false,
+    archivedAt: null,
+    createdAt: '2024-01-14T11:15:00',
+    diseaseType: 'Fungal',
+    severity: 'Medium',
+    accuracy: 87.2,
+    description: 'Fungal disease causing brown spots on leaves. Lesions start as small water-soaked spots that enlarge and turn brown.',
+    treatment: 'Apply appropriate fungicides. Ensure proper drainage and avoid overhead irrigation.',
+    prevention: 'Practice crop rotation. Use resistant varieties and maintain proper plant spacing.',
+    symptoms: 'Brown circular spots on leaves, yellow halos around spots, leaf drop.',
+    notes: '',
+  },
+  {
+    id: '3',
+    title: 'Cassava Green Mite',
+    subtitle: 'Pest Infestation Detected',
+    detail: 'Severity: High',
+    extra: 'Scanned: Jan 12, 2024 • 9:45 AM',
+    image: require('../assets/GreenMite.png'),
+    isArchived: false,
+    isSaved: false,
+    archivedAt: null,
+    createdAt: '2024-01-12T09:45:00',
+    diseaseType: 'Pest',
+    severity: 'High',
+    accuracy: 92.1,
+    description: 'Pest infestation causing leaf damage and stunted growth. Green mites feed on plant sap, causing yellowing and curling.',
+    treatment: 'Apply appropriate miticides or pesticides. Introduce natural predators like predatory mites.',
+    prevention: 'Regular monitoring of fields. Use resistant varieties and maintain good field hygiene.',
+    symptoms: 'Yellowing leaves, curled leaves, stunted growth, visible mites on leaves.',
+    notes: '',
+  },
+  {
+    id: '4',
+    title: 'Healthy Cassava Leaf',
+    subtitle: 'No Disease Detected',
+    detail: 'Status: Healthy',
+    extra: 'Scanned: Jan 10, 2024 • 4:20 PM',
+    image: require('../assets/HealthyLeaf.png'),
+    isArchived: false,
+    isSaved: false,
+    archivedAt: null,
+    createdAt: '2024-01-10T16:20:00',
+    diseaseType: 'Healthy',
+    severity: 'None',
+    accuracy: 98.3,
+    description: 'The leaf appears healthy with no signs of disease. Continue maintaining good agricultural practices.',
+    treatment: 'Continue current maintenance practices. Regular monitoring is recommended.',
+    prevention: 'Maintain proper farming practices. Regular inspection and early detection.',
+    symptoms: 'No visible symptoms. Healthy green leaves with normal growth.',
+    notes: '',
+  },
+];
+
 const HistoryScreen = ({ navigation }) => {
-  const [activeTab, setActiveTab] = useState('active');
+  const [activeTab, setActiveTab] = useState('active'); // 'active' | 'saved' | 'archived'
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [notesModalVisible, setNotesModalVisible] = useState(false);
@@ -32,142 +183,28 @@ const HistoryScreen = ({ navigation }) => {
   const [noteText, setNoteText] = useState('');
   const [viewMode, setViewMode] = useState('list'); // 'list' | 'detailed'
   
-  const [historyData, setHistoryData] = useState([
-    {
-      id: '1',
-      title: 'Cassava Mosaic Disease',
-      subtitle: 'Viral Infection Detected',
-      detail: 'Severity: High',
-      extra: 'Scanned: Jan 15, 2024 • 2:30 PM',
-      image: require('../assets/CassavaMosaic.png'),
-      isArchived: false,
-      archivedAt: null,
-      createdAt: '2024-01-15T14:30:00',
-      diseaseType: 'Viral',
-      severity: 'High',
-      accuracy: 94.7,
-      description: 'A viral disease that causes yellow mosaic patterns on leaves. Infected plants show stunted growth and reduced yield.',
-      treatment: 'Remove infected plants immediately. Use resistant varieties and control whitefly vectors with appropriate pesticides.',
-      prevention: 'Plant certified disease-free cuttings. Practice crop rotation and maintain proper field sanitation.',
-      symptoms: 'Yellow mosaic patterns on leaves, stunted growth, distorted leaves.',
-      notes: 'Found in the northern field. Affected about 30% of the crop.',
-    },
-    {
-      id: '2',
-      title: 'Brown Spot Disease',
-      subtitle: 'Fungal Infection Detected',
-      detail: 'Severity: Medium',
-      extra: 'Scanned: Jan 14, 2024 • 11:15 AM',
-      image: require('../assets/BrownSpot.png'),
-      isArchived: false,
-      archivedAt: null,
-      createdAt: '2024-01-14T11:15:00',
-      diseaseType: 'Fungal',
-      severity: 'Medium',
-      accuracy: 87.2,
-      description: 'Fungal disease causing brown spots on leaves. Lesions start as small water-soaked spots that enlarge and turn brown.',
-      treatment: 'Apply appropriate fungicides. Ensure proper drainage and avoid overhead irrigation.',
-      prevention: 'Practice crop rotation. Use resistant varieties and maintain proper plant spacing.',
-      symptoms: 'Brown circular spots on leaves, yellow halos around spots, leaf drop.',
-      notes: '',
-    },
-    {
-      id: '3',
-      title: 'Cassava Green Mite',
-      subtitle: 'Pest Infestation Detected',
-      detail: 'Severity: High',
-      extra: 'Scanned: Jan 12, 2024 • 9:45 AM',
-      image: require('../assets/GreenMite.png'),
-      isArchived: false,
-      archivedAt: null,
-      createdAt: '2024-01-12T09:45:00',
-      diseaseType: 'Pest',
-      severity: 'High',
-      accuracy: 92.1,
-      description: 'Pest infestation causing leaf damage and stunted growth. Green mites feed on plant sap, causing yellowing and curling.',
-      treatment: 'Apply appropriate miticides or pesticides. Introduce natural predators like predatory mites.',
-      prevention: 'Regular monitoring of fields. Use resistant varieties and maintain good field hygiene.',
-      symptoms: 'Yellowing leaves, curled leaves, stunted growth, visible mites on leaves.',
-      notes: '',
-    },
-    {
-      id: '4',
-      title: 'Healthy Cassava Leaf',
-      subtitle: 'No Disease Detected',
-      detail: 'Status: Healthy',
-      extra: 'Scanned: Jan 10, 2024 • 4:20 PM',
-      image: require('../assets/HealthyLeaf.png'),
-      isArchived: false,
-      archivedAt: null,
-      createdAt: '2024-01-10T16:20:00',
-      diseaseType: 'Healthy',
-      severity: 'None',
-      accuracy: 98.3,
-      description: 'The leaf appears healthy with no signs of disease. Continue maintaining good agricultural practices.',
-      treatment: 'Continue current maintenance practices. Regular monitoring is recommended.',
-      prevention: 'Maintain proper farming practices. Regular inspection and early detection.',
-      symptoms: 'No visible symptoms. Healthy green leaves with normal growth.',
-      notes: '',
-    },
-    {
-      id: '5',
-      title: 'Cassava Bacterial Blight',
-      subtitle: 'Bacterial Infection Detected',
-      detail: 'Severity: Medium',
-      extra: 'Scanned: Jan 8, 2024 • 10:00 AM',
-      image: require('../assets/BacterialBlight.png'),
-      isArchived: false,
-      archivedAt: null,
-      createdAt: '2024-01-08T10:00:00',
-      diseaseType: 'Bacterial',
-      severity: 'Medium',
-      accuracy: 89.5,
-      description: 'Bacterial infection causing blight on leaves and stems. Angular water-soaked lesions that turn brown and necrotic.',
-      treatment: 'Remove infected plants. Apply copper-based bactericides and maintain proper field hygiene.',
-      prevention: 'Use disease-free planting material. Practice crop rotation and avoid overhead irrigation.',
-      symptoms: 'Angular water-soaked lesions, brown spots with yellow halos, wilting.',
-      notes: '',
-    },
-    {
-      id: '6',
-      title: 'Cassava Anthracnose',
-      subtitle: 'Fungal Disease Detected',
-      detail: 'Severity: Low',
-      extra: 'Scanned: Jan 5, 2024 • 1:30 PM',
-      image: require('../assets/Anthracnose.png'),
-      isArchived: false,
-      archivedAt: null,
-      createdAt: '2024-01-05T13:30:00',
-      diseaseType: 'Fungal',
-      severity: 'Low',
-      accuracy: 85.9,
-      description: 'Fungal disease causing lesions on leaves and stems. Small brown spots that enlarge and develop dark margins.',
-      treatment: 'Apply appropriate fungicides. Improve air circulation and maintain proper drainage.',
-      prevention: 'Avoid overhead irrigation. Practice crop rotation and use resistant varieties.',
-      symptoms: 'Brown lesions on leaves, dark margins around spots, stem cankers.',
-      notes: '',
-    },
-  ]);
+  const [historyData, setHistoryData] = useState(sampleData);
 
   const diseaseTypes = ['All', 'Viral', 'Fungal', 'Bacterial', 'Pest', 'Healthy'];
 
   const getFilteredData = () => {
-    let filtered = historyData.filter(item => 
-      activeTab === 'active' ? !item.isArchived : item.isArchived
-    );
+    let filtered = historyData.filter(item => {
+      if (activeTab === 'active') return !item.isArchived && !item.isSaved;
+      if (activeTab === 'saved') return item.isSaved && !item.isArchived;
+      if (activeTab === 'archived') return item.isArchived;
+      return true;
+    });
 
     if (selectedFilter !== 'All') {
       filtered = filtered.filter(item => item.diseaseType === selectedFilter);
     }
 
-    if (sortBy === 'newest') {
-      filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    } else if (sortBy === 'oldest') {
-      filtered.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-    } else if (sortBy === 'name') {
-      filtered.sort((a, b) => a.title.localeCompare(b.title));
-    } else if (sortBy === 'accuracy') {
-      filtered.sort((a, b) => b.accuracy - a.accuracy);
+    switch(sortBy) {
+      case 'newest': filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); break;
+      case 'oldest': filtered.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)); break;
+      case 'name': filtered.sort((a, b) => a.title.localeCompare(b.title)); break;
+      case 'accuracy': filtered.sort((a, b) => b.accuracy - a.accuracy); break;
+      default: break;
     }
 
     return filtered;
@@ -175,122 +212,15 @@ const HistoryScreen = ({ navigation }) => {
 
   const filteredData = getFilteredData();
 
-  const generateReportContent = (item) => {
-    return `
-============================================
-        ROOTCARE - SCAN ANALYSIS REPORT
-============================================
-
-DISEASE INFORMATION
--------------------
-Disease: ${item.title}
-Type: ${item.diseaseType}
-Accuracy: ${item.accuracy}%
-Severity: ${item.severity}
-
-DESCRIPTION
------------
-${item.description}
-
-SYMPTOMS
---------
-${item.symptoms || 'Not specified'}
-
-TREATMENT
----------
-${item.treatment}
-
-PREVENTION
-----------
-${item.prevention}
-
-SCAN DETAILS
-------------
-Date: ${new Date(item.createdAt).toLocaleString()}
-Status: ${item.isArchived ? 'Archived' : 'Active'}
-
-NOTES
------
-${item.notes || 'No notes added'}
-
-============================================
-Generated by RootCare - Cassava Disease Detection App
-============================================
-    `;
-  };
-
-  const downloadOnWeb = (content, fileName) => {
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
-  const exportReport = async (item) => {
-    try {
-      setIsExporting(true);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-      const reportContent = generateReportContent(item);
-      const fileName = `RootCare_Report_${item.title.replace(/\s/g, '_')}_${Date.now()}.txt`;
-
-      if (Platform.OS === 'web') {
-        downloadOnWeb(reportContent, fileName);
-        Alert.alert('✅ Downloaded', 'Your report has been downloaded successfully!');
-        setIsExporting(false);
-        return;
-      }
-
-      const filePath = `${FileSystem.documentDirectory}${fileName}`;
-      await FileSystem.writeAsStringAsync(filePath, reportContent);
-
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(filePath, {
-          mimeType: 'text/plain',
-          dialogTitle: 'Export Scan Report',
-          UTI: 'public.plain-text',
-        });
-      } else {
-        await Share.share({
-          message: reportContent,
-          title: 'RootCare Scan Report',
-        });
-      }
-
-      Alert.alert('✅ Exported', 'Your report has been exported successfully!');
-
-    } catch (error) {
-      console.error('Export error:', error);
-      Alert.alert('Error', 'Failed to export the report. Please try again.');
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
-  const saveNote = () => {
-    if (!noteText.trim()) {
-      Alert.alert('Empty Note', 'Please enter a note before saving.');
-      return;
-    }
-
+  const handleSave = (id) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-    const updatedData = historyData.map(item => {
-      if (item.id === selectedItem.id) {
-        return { ...item, notes: noteText.trim() };
+    const newData = historyData.map(item => {
+      if (item.id === id) {
+        return { ...item, isSaved: !item.isSaved };
       }
       return item;
     });
-
-    setHistoryData(updatedData);
-    setSelectedItem({ ...selectedItem, notes: noteText.trim() });
-    setNotesModalVisible(false);
-    Alert.alert('✅ Note Saved', 'Your note has been added to this scan.');
+    setHistoryData(newData);
   };
 
   const handleArchive = (id) => {
@@ -304,20 +234,13 @@ Generated by RootCare - Cassava Disease Detection App
           style: 'default',
           onPress: () => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            
             const newData = historyData.map(item => {
               if (item.id === id) {
-                return { 
-                  ...item, 
-                  isArchived: true, 
-                  archivedAt: new Date().toISOString() 
-                };
+                return { ...item, isArchived: true, archivedAt: new Date().toISOString() };
               }
               return item;
             });
-            
             setHistoryData(newData);
-            Alert.alert('✅ Archived', 'Scan has been moved to archive.');
           }
         }
       ]
@@ -335,20 +258,13 @@ Generated by RootCare - Cassava Disease Detection App
           style: 'default',
           onPress: () => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            
             const newData = historyData.map(item => {
               if (item.id === id) {
-                return { 
-                  ...item, 
-                  isArchived: false, 
-                  archivedAt: null 
-                };
+                return { ...item, isArchived: false, archivedAt: null };
               }
               return item;
             });
-            
             setHistoryData(newData);
-            Alert.alert('✅ Restored', 'Scan has been restored to active.');
           }
         }
       ]
@@ -367,54 +283,49 @@ Generated by RootCare - Cassava Disease Detection App
     setNotesModalVisible(true);
   };
 
-  const getTypeBadgeStyle = (type) => {
-    switch(type) {
-      case 'Viral': return styles.viralBadge;
-      case 'Fungal': return styles.fungalBadge;
-      case 'Bacterial': return styles.bacterialBadge;
-      case 'Pest': return styles.pestBadge;
-      case 'Healthy': return styles.healthyBadge;
-      default: return {};
+  const saveNote = () => {
+    if (!noteText.trim()) {
+      Alert.alert('Empty Note', 'Please enter a note before saving.');
+      return;
+    }
+
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const updatedData = historyData.map(item => {
+      if (item.id === selectedItem.id) {
+        return { ...item, notes: noteText.trim() };
+      }
+      return item;
+    });
+
+    setHistoryData(updatedData);
+    setSelectedItem({ ...selectedItem, notes: noteText.trim() });
+    setNotesModalVisible(false);
+    Alert.alert('✅ Note Saved', 'Your note has been added to this scan.');
+  };
+
+  const exportReport = async (item) => {
+    try {
+      setIsExporting(true);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      // Export logic here
+      setIsExporting(false);
+    } catch (error) {
+      console.error('Export error:', error);
+      setIsExporting(false);
     }
   };
 
-  const getSeverityColor = (severity) => {
-    switch(severity) {
-      case 'High': return '#E74C3C';
-      case 'Medium': return '#F39C12';
-      case 'Low': return '#27AE60';
-      case 'None': return '#2ECC71';
-      default: return '#8A7A66';
-    }
-  };
-
-  const getAccuracyColor = (accuracy) => {
-    if (accuracy >= 90) return styles.accuracyHigh;
-    if (accuracy >= 70) return styles.accuracyMedium;
-    return styles.accuracyLow;
-  };
-
-  // Get date key for grouping
   const getDateKey = (item) => {
     const date = new Date(item.createdAt);
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
     
-    if (date.toDateString() === today.toDateString()) {
-      return 'Today';
-    } else if (date.toDateString() === yesterday.toDateString()) {
-      return 'Yesterday';
-    } else {
-      return date.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric',
-        year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined
-      });
-    }
+    if (date.toDateString() === today.toDateString()) return 'Today';
+    if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  // Render section header for date grouping
   const renderSectionHeader = (dateKey) => (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionHeaderText}>{dateKey}</Text>
@@ -422,9 +333,29 @@ Generated by RootCare - Cassava Disease Detection App
     </View>
   );
 
-  // Render List View Item
+  const renderItem = ({ item, index }) => {
+    const currentDateKey = getDateKey(item);
+    let showHeader = false;
+    
+    if (index === 0) {
+      showHeader = true;
+    } else {
+      const previousItem = filteredData[index - 1];
+      const prevDateKey = getDateKey(previousItem);
+      showHeader = currentDateKey !== prevDateKey;
+    }
+
+    return (
+      <View>
+        {showHeader && renderSectionHeader(currentDateKey)}
+        {viewMode === 'list' ? renderListItem({ item }) : renderDetailedItem({ item })}
+      </View>
+    );
+  };
+
   const renderListItem = ({ item }) => {
     const isArchived = item.isArchived;
+    const isSaved = item.isSaved;
 
     return (
       <TouchableOpacity 
@@ -441,11 +372,18 @@ Generated by RootCare - Cassava Disease Detection App
             <View style={styles.historyContent}>
               <View style={styles.titleRow}>
                 <Text style={styles.historyTitle}>{item.title}</Text>
-                {isArchived && (
-                  <View style={styles.archivedBadge}>
-                    <Text style={styles.archivedBadgeText}>ARCHIVED</Text>
-                  </View>
-                )}
+                <View style={styles.badgeRow}>
+                  {isSaved && (
+                    <View style={styles.savedBadge}>
+                      <Ionicons name="bookmark" size={10} color="#FFFFFF" />
+                    </View>
+                  )}
+                  {isArchived && (
+                    <View style={styles.archivedBadge}>
+                      <Text style={styles.archivedBadgeText}>ARCHIVED</Text>
+                    </View>
+                  )}
+                </View>
               </View>
               <Text style={styles.historySubtitle}>{item.subtitle}</Text>
               
@@ -471,32 +409,42 @@ Generated by RootCare - Cassava Disease Detection App
                 <Text style={styles.historyExtra}>
                   {isArchived ? `Archived: ${new Date(item.archivedAt).toLocaleDateString()}` : item.extra}
                 </Text>
-                {item.notes ? (
-                  <Ionicons name="document-text-outline" size={12} color="#C77A58" />
-                ) : null}
               </View>
             </View>
 
-            <TouchableOpacity 
-              style={styles.actionButton}
-              onPress={() => isArchived ? handleRestore(item.id) : handleArchive(item.id)}
-              activeOpacity={0.6}
-            >
-              <Ionicons 
-                name={isArchived ? 'refresh-outline' : 'archive-outline'} 
-                size={22} 
-                color={isArchived ? '#4CAF50' : '#C77A58'} 
-              />
-            </TouchableOpacity>
+            <View style={styles.actionButtons}>
+              <TouchableOpacity 
+                style={styles.actionButton}
+                onPress={() => handleSave(item.id)}
+                activeOpacity={0.6}
+              >
+                <Ionicons 
+                  name={isSaved ? 'bookmark' : 'bookmark-outline'} 
+                  size={20} 
+                  color={isSaved ? colors.primary : colors.secondary} 
+                />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.actionButton}
+                onPress={() => isArchived ? handleRestore(item.id) : handleArchive(item.id)}
+                activeOpacity={0.6}
+              >
+                <Ionicons 
+                  name={isArchived ? 'refresh-outline' : 'archive-outline'} 
+                  size={20} 
+                  color={isArchived ? '#4CAF50' : colors.secondary} 
+                />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </TouchableOpacity>
     );
   };
 
-  // Render Detailed Card Item
   const renderDetailedItem = ({ item }) => {
     const isArchived = item.isArchived;
+    const isSaved = item.isSaved;
 
     return (
       <TouchableOpacity 
@@ -509,11 +457,18 @@ Generated by RootCare - Cassava Disease Detection App
           <View style={styles.detailedContent}>
             <View style={styles.detailedHeader}>
               <Text style={styles.detailedTitle}>{item.title}</Text>
-              {isArchived && (
-                <View style={styles.archivedBadge}>
-                  <Text style={styles.archivedBadgeText}>ARCHIVED</Text>
-                </View>
-              )}
+              <View style={styles.badgeRow}>
+                {isSaved && (
+                  <View style={styles.savedBadge}>
+                    <Ionicons name="bookmark" size={12} color="#FFFFFF" />
+                  </View>
+                )}
+                {isArchived && (
+                  <View style={styles.archivedBadge}>
+                    <Text style={styles.archivedBadgeText}>ARCHIVED</Text>
+                  </View>
+                )}
+              </View>
             </View>
             <Text style={styles.detailedSubtitle}>{item.subtitle}</Text>
             <Text style={styles.detailedDescription} numberOfLines={2}>
@@ -541,27 +496,33 @@ Generated by RootCare - Cassava Disease Detection App
                   {item.severity}
                 </Text>
               </View>
-              <View style={styles.detailedStat}>
-                <Text style={styles.detailedStatLabel}>Date</Text>
-                <Text style={styles.detailedStatValue}>
-                  {new Date(item.createdAt).toLocaleDateString()}
-                </Text>
-              </View>
             </View>
             <View style={styles.detailedActions}>
               <View style={[styles.typeBadge, getTypeBadgeStyle(item.diseaseType)]}>
                 <Text style={styles.typeBadgeText}>{item.diseaseType}</Text>
               </View>
-              <TouchableOpacity 
-                style={styles.detailedActionButton}
-                onPress={() => isArchived ? handleRestore(item.id) : handleArchive(item.id)}
-              >
-                <Ionicons 
-                  name={isArchived ? 'refresh-outline' : 'archive-outline'} 
-                  size={18} 
-                  color={isArchived ? '#4CAF50' : '#C77A58'} 
-                />
-              </TouchableOpacity>
+              <View style={styles.detailedActionButtons}>
+                <TouchableOpacity 
+                  style={styles.detailedActionButton}
+                  onPress={() => handleSave(item.id)}
+                >
+                  <Ionicons 
+                    name={isSaved ? 'bookmark' : 'bookmark-outline'} 
+                    size={18} 
+                    color={isSaved ? colors.primary : colors.secondary} 
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.detailedActionButton}
+                  onPress={() => isArchived ? handleRestore(item.id) : handleArchive(item.id)}
+                >
+                  <Ionicons 
+                    name={isArchived ? 'refresh-outline' : 'archive-outline'} 
+                    size={18} 
+                    color={isArchived ? '#4CAF50' : colors.secondary} 
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </View>
@@ -569,85 +530,126 @@ Generated by RootCare - Cassava Disease Detection App
     );
   };
 
-  // Main render function with date grouping
-  const renderItem = ({ item, index }) => {
-    // Check if this is the first item of a new date group
-    const currentDateKey = getDateKey(item);
-    let showHeader = false;
-    
-    if (index === 0) {
-      showHeader = true;
-    } else {
-      const previousItem = filteredData[index - 1];
-      const prevDateKey = getDateKey(previousItem);
-      showHeader = currentDateKey !== prevDateKey;
-    }
-
-    return (
-      <View>
-        {showHeader && renderSectionHeader(currentDateKey)}
-        {viewMode === 'list' && renderListItem({ item })}
-        {viewMode === 'detailed' && renderDetailedItem({ item })}
-      </View>
-    );
+  const getTabCount = (tab) => {
+    if (tab === 'active') return historyData.filter(item => !item.isArchived && !item.isSaved).length;
+    if (tab === 'saved') return historyData.filter(item => item.isSaved && !item.isArchived).length;
+    if (tab === 'archived') return historyData.filter(item => item.isArchived).length;
+    return 0;
   };
 
-  const renderNotesModal = () => {
-    if (!selectedItem) return null;
-
-    return (
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={notesModalVisible}
-        onRequestClose={() => setNotesModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, styles.notesModalContent]}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Add Notes</Text>
-              <TouchableOpacity 
-                onPress={() => setNotesModalVisible(false)}
-                style={styles.modalCloseButton}
-              >
-                <Ionicons name="close" size={24} color="#5C3D2E" />
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.notesForText}>
-              Notes for: {selectedItem.title}
-            </Text>
-
-            <TextInput
-              style={styles.notesInput}
-              placeholder="Enter your observations, field location, treatment notes..."
-              placeholderTextColor="#8A7A66"
-              multiline
-              value={noteText}
-              onChangeText={setNoteText}
-              textAlignVertical="top"
-            />
-
-            <View style={styles.notesActions}>
-              <TouchableOpacity
-                style={[styles.notesButton, styles.notesCancelButton]}
-                onPress={() => setNotesModalVisible(false)}
-              >
-                <Text style={styles.notesCancelText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.notesButton, styles.notesSaveButton]}
-                onPress={saveNote}
-              >
-                <Text style={styles.notesSaveText}>Save Note</Text>
-              </TouchableOpacity>
-            </View>
+  // Filter Modal
+  const renderFilterModal = () => (
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={filterModalVisible}
+      onRequestClose={() => setFilterModalVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Filter & Sort</Text>
+            <TouchableOpacity 
+              onPress={() => setFilterModalVisible(false)}
+              style={styles.modalCloseButton}
+            >
+              <Ionicons name="close" size={24} color={colors['on-surface']} />
+            </TouchableOpacity>
           </View>
-        </View>
-      </Modal>
-    );
-  };
 
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {/* Disease Type Filter */}
+            <View style={styles.modalSection}>
+              <Text style={styles.modalSectionTitle}>Disease Type</Text>
+              <View style={styles.filterOptions}>
+                {diseaseTypes.map((type) => (
+                  <TouchableOpacity
+                    key={type}
+                    style={[
+                      styles.filterChip,
+                      selectedFilter === type && styles.filterChipActive,
+                    ]}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setSelectedFilter(type);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        selectedFilter === type && styles.filterChipTextActive,
+                      ]}
+                    >
+                      {type}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Sort Options */}
+            <View style={styles.modalSection}>
+              <Text style={styles.modalSectionTitle}>Sort By</Text>
+              <View style={styles.sortOptions}>
+                {[
+                  { id: 'newest', label: 'Newest First' },
+                  { id: 'oldest', label: 'Oldest First' },
+                  { id: 'name', label: 'Alphabetical' },
+                  { id: 'accuracy', label: 'Accuracy' },
+                ].map((option) => (
+                  <TouchableOpacity
+                    key={option.id}
+                    style={[
+                      styles.sortOption,
+                      sortBy === option.id && styles.sortOptionActive,
+                    ]}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setSortBy(option.id);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.sortOptionText,
+                        sortBy === option.id && styles.sortOptionTextActive,
+                      ]}
+                    >
+                      {option.label}
+                    </Text>
+                    {sortBy === option.id && (
+                      <Ionicons name="checkmark" size={18} color={colors.secondary} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Apply Button */}
+            <TouchableOpacity
+              style={styles.applyButton}
+              onPress={() => setFilterModalVisible(false)}
+            >
+              <Text style={styles.applyButtonText}>Apply Filters</Text>
+            </TouchableOpacity>
+
+            {/* Reset Button */}
+            <TouchableOpacity
+              style={styles.resetButton}
+              onPress={() => {
+                setSelectedFilter('All');
+                setSortBy('newest');
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }}
+            >
+              <Text style={styles.resetButtonText}>Reset Filters</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  // Detail Modal
   const renderDetailModal = () => {
     if (!selectedItem) return null;
 
@@ -668,7 +670,7 @@ Generated by RootCare - Cassava Disease Detection App
                   setDetailModalVisible(false);
                 }}
               >
-                <Ionicons name="arrow-back" size={24} color="#5C3D2E" />
+                <Ionicons name="arrow-back" size={24} color={colors['on-surface']} />
               </TouchableOpacity>
               <Text style={styles.detailModalTitle}>Analysis Details</Text>
               <TouchableOpacity 
@@ -677,9 +679,9 @@ Generated by RootCare - Cassava Disease Detection App
                 disabled={isExporting}
               >
                 {isExporting ? (
-                  <ActivityIndicator size="small" color="#C77A58" />
+                  <ActivityIndicator size="small" color={colors.secondary} />
                 ) : (
-                  <Ionicons name="download-outline" size={24} color="#C77A58" />
+                  <Ionicons name="download-outline" size={24} color={colors.secondary} />
                 )}
               </TouchableOpacity>
             </View>
@@ -747,23 +749,12 @@ Generated by RootCare - Cassava Disease Detection App
                       setTimeout(() => openNotesModal(selectedItem), 300);
                     }}
                   >
-                    <Ionicons name="create-outline" size={20} color="#C77A58" />
+                    <Ionicons name="create-outline" size={20} color={colors.secondary} />
                   </TouchableOpacity>
                 </View>
                 <Text style={[styles.detailSectionText, selectedItem.notes ? styles.hasNotes : styles.noNotes]}>
                   {selectedItem.notes || 'No notes added. Tap the pencil icon to add notes.'}
                 </Text>
-              </View>
-
-              <View style={styles.detailFooter}>
-                <Text style={styles.detailFooterText}>
-                  Scanned: {selectedItem.extra}
-                </Text>
-                {selectedItem.isArchived && (
-                  <Text style={styles.detailFooterText}>
-                    Archived: {new Date(selectedItem.archivedAt).toLocaleDateString()}
-                  </Text>
-                )}
               </View>
             </ScrollView>
           </View>
@@ -772,99 +763,62 @@ Generated by RootCare - Cassava Disease Detection App
     );
   };
 
-  const renderFilterModal = () => (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={filterModalVisible}
-      onRequestClose={() => setFilterModalVisible(false)}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Filter & Sort</Text>
-            <TouchableOpacity 
-              onPress={() => setFilterModalVisible(false)}
-              style={styles.modalCloseButton}
-            >
-              <Ionicons name="close" size={24} color="#5C3D2E" />
-            </TouchableOpacity>
-          </View>
+  // Notes Modal
+  const renderNotesModal = () => {
+    if (!selectedItem) return null;
 
-          <View style={styles.modalSection}>
-            <Text style={styles.modalSectionTitle}>Disease Type</Text>
-            <View style={styles.filterOptions}>
-              {diseaseTypes.map((type) => (
-                <TouchableOpacity
-                  key={type}
-                  style={[
-                    styles.filterChip,
-                    selectedFilter === type && styles.filterChipActive,
-                  ]}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setSelectedFilter(type);
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.filterChipText,
-                      selectedFilter === type && styles.filterChipTextActive,
-                    ]}
-                  >
-                    {type}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+    return (
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={notesModalVisible}
+        onRequestClose={() => setNotesModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, styles.notesModalContent]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Add Notes</Text>
+              <TouchableOpacity 
+                onPress={() => setNotesModalVisible(false)}
+                style={styles.modalCloseButton}
+              >
+                <Ionicons name="close" size={24} color={colors['on-surface']} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.notesForText}>
+              Notes for: {selectedItem.title}
+            </Text>
+
+            <TextInput
+              style={styles.notesInput}
+              placeholder="Enter your observations, field location, treatment notes..."
+              placeholderTextColor={colors.outline}
+              multiline
+              value={noteText}
+              onChangeText={setNoteText}
+              textAlignVertical="top"
+            />
+
+            <View style={styles.notesActions}>
+              <TouchableOpacity
+                style={[styles.notesButton, styles.notesCancelButton]}
+                onPress={() => setNotesModalVisible(false)}
+              >
+                <Text style={styles.notesCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.notesButton, styles.notesSaveButton]}
+                onPress={saveNote}
+              >
+                <Text style={styles.notesSaveText}>Save Note</Text>
+              </TouchableOpacity>
             </View>
           </View>
-
-          <View style={styles.modalSection}>
-            <Text style={styles.modalSectionTitle}>Sort By</Text>
-            <View style={styles.sortOptions}>
-              {[
-                { id: 'newest', label: 'Newest First' },
-                { id: 'oldest', label: 'Oldest First' },
-                { id: 'name', label: 'Alphabetical' },
-                { id: 'accuracy', label: 'Accuracy' },
-              ].map((option) => (
-                <TouchableOpacity
-                  key={option.id}
-                  style={[
-                    styles.sortOption,
-                    sortBy === option.id && styles.sortOptionActive,
-                  ]}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setSortBy(option.id);
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.sortOptionText,
-                      sortBy === option.id && styles.sortOptionTextActive,
-                    ]}
-                  >
-                    {option.label}
-                  </Text>
-                  {sortBy === option.id && (
-                    <Ionicons name="checkmark" size={18} color="#C77A58" />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          <TouchableOpacity
-            style={styles.applyButton}
-            onPress={() => setFilterModalVisible(false)}
-          >
-            <Text style={styles.applyButtonText}>Apply</Text>
-          </TouchableOpacity>
         </View>
-      </View>
-    </Modal>
-  );
+      </Modal>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -874,62 +828,48 @@ Generated by RootCare - Cassava Disease Detection App
           <TouchableOpacity 
             style={styles.viewModeButton}
             onPress={() => {
-              const nextMode = viewMode === 'list' ? 'detailed' : 'list';
-              setViewMode(nextMode);
+              setViewMode(viewMode === 'list' ? 'detailed' : 'list');
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             }}
           >
             <Ionicons 
               name={viewMode === 'list' ? 'list-outline' : 'apps-outline'} 
               size={22} 
-              color="#FFFFFF" 
+              color={colors['on-primary']} 
             />
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.filterButton}
             onPress={() => setFilterModalVisible(true)}
           >
-            <Ionicons name="options-outline" size={22} color="#FFFFFF" />
+            <Ionicons name="options-outline" size={22} color={colors['on-primary']} />
           </TouchableOpacity>
         </View>
       </View>
 
       <View style={styles.toggleContainer}>
-        <TouchableOpacity
-          style={[
-            styles.toggleButton,
-            activeTab === 'active' && styles.toggleButtonActive,
-          ]}
-          onPress={() => setActiveTab('active')}
-          activeOpacity={0.7}
-        >
-          <Text
+        {['active', 'saved', 'archived'].map((tab) => (
+          <TouchableOpacity
+            key={tab}
             style={[
-              styles.toggleText,
-              activeTab === 'active' && styles.toggleTextActive,
+              styles.toggleButton,
+              activeTab === tab && styles.toggleButtonActive,
             ]}
+            onPress={() => setActiveTab(tab)}
+            activeOpacity={0.7}
           >
-            Active ({historyData.filter(item => !item.isArchived).length})
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.toggleButton,
-            activeTab === 'archived' && styles.toggleButtonActive,
-          ]}
-          onPress={() => setActiveTab('archived')}
-          activeOpacity={0.7}
-        >
-          <Text
-            style={[
-              styles.toggleText,
-              activeTab === 'archived' && styles.toggleTextActive,
-            ]}
-          >
-            Archived ({historyData.filter(item => item.isArchived).length})
-          </Text>
-        </TouchableOpacity>
+            <Text
+              style={[
+                styles.toggleText,
+                activeTab === tab && styles.toggleTextActive,
+              ]}
+            >
+              {tab === 'active' ? 'Active' : tab === 'saved' ? 'Saved' : 'Archived'}
+              {' '}
+              <Text style={styles.toggleCount}>({getTabCount(tab)})</Text>
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       {filteredData.length > 0 ? (
@@ -939,7 +879,7 @@ Generated by RootCare - Cassava Disease Detection App
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
-          key={viewMode} // Force re-render when view mode changes
+          key={viewMode}
           ListHeaderComponent={
             <View style={styles.filterInfo}>
               <Text style={styles.filterInfoText}>
@@ -954,16 +894,18 @@ Generated by RootCare - Cassava Disease Detection App
       ) : (
         <View style={styles.emptyContainer}>
           <Ionicons 
-            name={activeTab === 'active' ? 'document-text-outline' : 'archive-outline'} 
+            name={activeTab === 'active' ? 'document-text-outline' : activeTab === 'saved' ? 'bookmark-outline' : 'archive-outline'} 
             size={60} 
-            color="#C77A58" 
+            color={colors.secondary} 
           />
           <Text style={styles.emptyText}>
-            {activeTab === 'active' ? 'No active scans' : 'No archived scans'}
+            {activeTab === 'active' ? 'No active scans' : activeTab === 'saved' ? 'No saved scans' : 'No archived scans'}
           </Text>
           <Text style={styles.emptySubtext}>
             {activeTab === 'active' 
               ? 'Your scan results will appear here' 
+              : activeTab === 'saved'
+              ? 'Save scans to access them quickly'
               : 'Archived scans will appear here'}
           </Text>
         </View>
@@ -976,28 +918,28 @@ Generated by RootCare - Cassava Disease Detection App
   );
 };
 
-const HEADER_HEIGHT = 52;
-
+// Styles following the design system
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#DCC8AC',
+    backgroundColor: colors.background,
     ...(Platform.OS === 'web' ? { height: '100vh', overflow: 'hidden' } : {}),
   },
   header: {
     width: '100%',
     minHeight: HEADER_HEIGHT,
-    backgroundColor: '#C77A58',
+    backgroundColor: colors.primary,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
   },
   headerText: {
+    fontFamily: 'Montserrat',
     fontSize: 18,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors['on-primary'],
     letterSpacing: 1,
   },
   headerActions: {
@@ -1006,26 +948,26 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   viewModeButton: {
-    padding: 4,
+    padding: spacing.xs,
   },
   filterButton: {
-    padding: 4,
+    padding: spacing.xs,
   },
   toggleContainer: {
     flexDirection: 'row',
-    backgroundColor: '#E4D3BB',
-    margin: 16,
-    borderRadius: 12,
-    padding: 4,
+    backgroundColor: colors['surface-container-low'],
+    margin: spacing.md,
+    borderRadius: rounded.md,
+    padding: spacing.xs,
   },
   toggleButton: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: spacing.sm,
     alignItems: 'center',
-    borderRadius: 10,
+    borderRadius: rounded.DEFAULT,
   },
   toggleButtonActive: {
-    backgroundColor: '#C77A58',
+    backgroundColor: colors.primary,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -1035,59 +977,60 @@ const styles = StyleSheet.create({
   toggleText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#8A7A66',
+    color: colors['on-surface-variant'],
   },
   toggleTextActive: {
-    color: '#FFFFFF',
+    color: colors['on-primary'],
+  },
+  toggleCount: {
+    fontSize: 12,
+    fontWeight: '400',
   },
   listContent: {
-    padding: 16,
-    paddingBottom: 20,
+    padding: spacing.md,
+    paddingBottom: spacing.lg,
   },
   filterInfo: {
-    paddingHorizontal: 4,
-    paddingBottom: 8,
+    paddingHorizontal: spacing.xs,
+    paddingBottom: spacing.sm,
   },
   filterInfoText: {
     fontSize: 12,
-    color: '#8A7A66',
+    color: colors['on-surface-variant'],
     fontWeight: '500',
   },
-  // Section Header Styles
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 4,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xs,
   },
   sectionHeaderText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#5C3D2E',
-    marginRight: 8,
+    color: colors['on-surface'],
+    marginRight: spacing.sm,
   },
   sectionHeaderLine: {
     flex: 1,
     height: 1,
-    backgroundColor: 'rgba(199, 122, 88, 0.3)',
+    backgroundColor: colors['outline-variant'],
   },
-  // List View Styles
   cardWrapper: {
-    marginBottom: 12,
+    marginBottom: spacing.sm,
   },
   historyCard: {
-    backgroundColor: '#E4D3BB',
-    borderRadius: 12,
-    padding: 12,
-    shadowColor: '#000',
+    backgroundColor: colors['surface-container-low'],
+    borderRadius: rounded.DEFAULT,
+    padding: spacing.sm,
+    shadowColor: 'rgba(93, 64, 55, 0.08)',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 1,
     shadowRadius: 4,
     elevation: 2,
   },
   archivedCard: {
-    backgroundColor: '#D2C4B0',
-    opacity: 0.8,
+    opacity: 0.7,
   },
   cardRow: {
     flexDirection: 'row',
@@ -1096,10 +1039,10 @@ const styles = StyleSheet.create({
   imageContainer: {
     width: 70,
     height: 70,
-    borderRadius: 8,
+    borderRadius: rounded.DEFAULT,
     overflow: 'hidden',
-    marginRight: 12,
-    backgroundColor: '#C77A58',
+    marginRight: spacing.sm,
+    backgroundColor: colors.secondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1114,29 +1057,41 @@ const styles = StyleSheet.create({
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
   },
   historyTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#222222',
+    color: colors['on-surface'],
     flex: 1,
   },
+  badgeRow: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  savedBadge: {
+    backgroundColor: colors.primary,
+    width: 20,
+    height: 20,
+    borderRadius: rounded.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   archivedBadge: {
-    backgroundColor: '#8A7A66',
-    paddingHorizontal: 6,
+    backgroundColor: colors['on-surface-variant'],
+    paddingHorizontal: spacing.xs,
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: rounded.sm,
   },
   archivedBadgeText: {
     fontSize: 8,
-    color: '#FFFFFF',
+    color: colors['on-primary'],
     fontWeight: '700',
     letterSpacing: 0.5,
   },
   historySubtitle: {
     fontSize: 12,
-    color: '#444444',
+    color: colors['on-surface-variant'],
     fontWeight: '500',
   },
   detailRow: {
@@ -1144,19 +1099,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     flexWrap: 'wrap',
-    gap: 4,
+    gap: spacing.xs,
   },
   accuracyContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.xs,
     minWidth: 100,
   },
   accuracyBarTrack: {
     flex: 1,
     height: 6,
-    backgroundColor: '#D2C4B0',
+    backgroundColor: colors['outline-variant'],
     borderRadius: 3,
     overflow: 'hidden',
     maxWidth: 100,
@@ -1165,29 +1120,23 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 3,
   },
-  accuracyHigh: {
-    backgroundColor: '#27AE60',
-  },
-  accuracyMedium: {
-    backgroundColor: '#F39C12',
-  },
-  accuracyLow: {
-    backgroundColor: '#E74C3C',
-  },
+  accuracyHigh: { backgroundColor: '#27AE60' },
+  accuracyMedium: { backgroundColor: '#F39C12' },
+  accuracyLow: { backgroundColor: '#E74C3C' },
   accuracyText: {
     fontSize: 10,
-    color: '#555555',
+    color: colors['on-surface-variant'],
     fontWeight: '600',
     minWidth: 35,
   },
   typeBadge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: spacing.xs,
     paddingVertical: 2,
-    borderRadius: 10,
+    borderRadius: rounded.full,
   },
   typeBadgeText: {
     fontSize: 9,
-    color: '#FFFFFF',
+    color: colors['on-primary'],
     fontWeight: '700',
     letterSpacing: 0.3,
   },
@@ -1199,27 +1148,30 @@ const styles = StyleSheet.create({
   extraRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: spacing.xs,
   },
   historyExtra: {
     fontSize: 10,
-    color: '#888888',
+    color: colors.outline,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: spacing.xs,
   },
   actionButton: {
-    padding: 8,
-    marginLeft: 4,
+    padding: spacing.xs,
   },
   // Detailed View Styles
   detailedCardWrapper: {
-    marginBottom: 14,
+    marginBottom: spacing.md,
   },
   detailedCard: {
-    backgroundColor: '#E4D3BB',
-    borderRadius: 12,
+    backgroundColor: colors['surface-container-low'],
+    borderRadius: rounded.DEFAULT,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: 'rgba(93, 64, 55, 0.08)',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 1,
     shadowRadius: 4,
     elevation: 2,
   },
@@ -1228,8 +1180,8 @@ const styles = StyleSheet.create({
     height: 160,
   },
   detailedContent: {
-    padding: 14,
-    gap: 6,
+    padding: spacing.md,
+    gap: spacing.xs,
   },
   detailedHeader: {
     flexDirection: 'row',
@@ -1239,26 +1191,26 @@ const styles = StyleSheet.create({
   detailedTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#222222',
+    color: colors['on-surface'],
     flex: 1,
   },
   detailedSubtitle: {
     fontSize: 13,
-    color: '#444444',
+    color: colors['on-surface-variant'],
     fontWeight: '500',
   },
   detailedDescription: {
     fontSize: 12,
-    color: '#666666',
+    color: colors.outline,
     lineHeight: 18,
   },
   detailedFooter: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    backgroundColor: 'rgba(199, 122, 88, 0.1)',
-    borderRadius: 8,
-    padding: 10,
-    marginTop: 4,
+    backgroundColor: colors['surface-container'],
+    borderRadius: rounded.DEFAULT,
+    padding: spacing.sm,
+    marginTop: spacing.xs,
   },
   detailedStat: {
     alignItems: 'center',
@@ -1266,28 +1218,32 @@ const styles = StyleSheet.create({
   },
   detailedStatLabel: {
     fontSize: 10,
-    color: '#8A7A66',
+    color: colors['on-surface-variant'],
     fontWeight: '500',
   },
   detailedStatValue: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#5C3D2E',
+    color: colors['on-surface'],
   },
   detailedAccuracyBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
     width: '100%',
   },
   detailedActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: spacing.xs,
+  },
+  detailedActionButtons: {
+    flexDirection: 'row',
+    gap: spacing.xs,
   },
   detailedActionButton: {
-    padding: 6,
+    padding: spacing.xs,
   },
   // Empty State
   emptyContainer: {
@@ -1298,13 +1254,13 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#5C3D2E',
-    marginTop: 16,
+    color: colors['on-surface'],
+    marginTop: spacing.md,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#8A7A66',
-    marginTop: 8,
+    color: colors['on-surface-variant'],
+    marginTop: spacing.xs,
   },
   // Modal Styles
   modalOverlay: {
@@ -1314,9 +1270,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#F5EDE3',
-    borderRadius: 20,
-    padding: 24,
+    backgroundColor: colors.surface,
+    borderRadius: rounded.xl,
+    padding: spacing.lg,
     width: '90%',
     maxWidth: 400,
     maxHeight: '80%',
@@ -1325,101 +1281,113 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
-    paddingBottom: 12,
+    marginBottom: spacing.md,
+    paddingBottom: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(199, 122, 88, 0.3)',
+    borderBottomColor: colors['outline-variant'],
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#5C3D2E',
+    color: colors['on-surface'],
   },
   modalCloseButton: {
-    padding: 4,
+    padding: spacing.xs,
   },
   modalSection: {
-    marginBottom: 20,
+    marginBottom: spacing.md,
   },
   modalSectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#5C3D2E',
-    marginBottom: 10,
+    color: colors['on-surface'],
+    marginBottom: spacing.sm,
   },
   filterOptions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: spacing.xs,
   },
   filterChip: {
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 16,
-    backgroundColor: '#E4D3BB',
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    borderRadius: rounded.full,
+    backgroundColor: colors['surface-container-low'],
     borderWidth: 1,
     borderColor: 'transparent',
   },
   filterChipActive: {
-    backgroundColor: '#C77A58',
-    borderColor: '#C77A58',
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   filterChipText: {
     fontSize: 12,
-    color: '#5C3D2E',
+    color: colors['on-surface'],
     fontWeight: '500',
   },
   filterChipTextActive: {
-    color: '#FFFFFF',
+    color: colors['on-primary'],
   },
   sortOptions: {
-    gap: 8,
+    gap: spacing.xs,
   },
   sortOption: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: '#E4D3BB',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: rounded.DEFAULT,
+    backgroundColor: colors['surface-container-low'],
   },
   sortOptionActive: {
-    backgroundColor: '#D2BEA3',
+    backgroundColor: colors['surface-container'],
     borderWidth: 1,
-    borderColor: '#C77A58',
+    borderColor: colors.secondary,
   },
   sortOptionText: {
     fontSize: 13,
-    color: '#5C3D2E',
+    color: colors['on-surface'],
   },
   sortOptionTextActive: {
-    color: '#C77A58',
+    color: colors.secondary,
     fontWeight: '600',
   },
   applyButton: {
-    backgroundColor: '#C77A58',
-    paddingVertical: 12,
-    borderRadius: 10,
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.sm,
+    borderRadius: rounded.DEFAULT,
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   applyButtonText: {
-    color: '#FFFFFF',
+    color: colors['on-primary'],
     fontSize: 16,
     fontWeight: '700',
-    letterSpacing: 0.5,
   },
+  resetButton: {
+    backgroundColor: 'transparent',
+    paddingVertical: spacing.sm,
+    borderRadius: rounded.DEFAULT,
+    alignItems: 'center',
+    marginTop: spacing.xs,
+  },
+  resetButtonText: {
+    color: colors['on-surface-variant'],
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  // Detail Modal
   detailModalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
   detailModalContent: {
-    backgroundColor: '#F5EDE3',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: rounded.xl,
+    borderTopRightRadius: rounded.xl,
+    padding: spacing.lg,
     maxHeight: '90%',
     minHeight: '70%',
   },
@@ -1427,28 +1395,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.md,
   },
   detailCloseButton: {
-    padding: 4,
+    padding: spacing.xs,
   },
   detailExportButton: {
-    padding: 4,
+    padding: spacing.xs,
   },
   detailModalTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#5C3D2E',
+    color: colors['on-surface'],
   },
   detailScrollContent: {
-    paddingBottom: 20,
+    paddingBottom: spacing.lg,
   },
   detailImageContainer: {
     width: '100%',
     height: 200,
-    borderRadius: 12,
+    borderRadius: rounded.DEFAULT,
     overflow: 'hidden',
-    marginBottom: 16,
+    marginBottom: spacing.md,
     position: 'relative',
   },
   detailImage: {
@@ -1457,35 +1425,35 @@ const styles = StyleSheet.create({
   },
   detailTypeBadge: {
     position: 'absolute',
-    top: 12,
-    right: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+    top: spacing.sm,
+    right: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: rounded.full,
   },
   detailTypeBadgeText: {
     fontSize: 12,
-    color: '#FFFFFF',
+    color: colors['on-primary'],
     fontWeight: '700',
     letterSpacing: 0.5,
   },
   detailDiseaseName: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#5C3D2E',
-    marginBottom: 4,
+    color: colors['on-surface'],
+    marginBottom: spacing.xs,
   },
   detailSubtitle: {
     fontSize: 14,
-    color: '#8A7A66',
-    marginBottom: 16,
+    color: colors['on-surface-variant'],
+    marginBottom: spacing.md,
   },
   detailStatsRow: {
     flexDirection: 'row',
-    backgroundColor: '#E4D3BB',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    backgroundColor: colors['surface-container-low'],
+    borderRadius: rounded.DEFAULT,
+    padding: spacing.md,
+    marginBottom: spacing.md,
     justifyContent: 'space-around',
   },
   detailStat: {
@@ -1494,103 +1462,93 @@ const styles = StyleSheet.create({
   detailStatValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#5C3D2E',
+    color: colors['on-surface'],
   },
   detailStatLabel: {
     fontSize: 11,
-    color: '#8A7A66',
+    color: colors['on-surface-variant'],
     marginTop: 2,
   },
   detailStatDivider: {
     width: 1,
-    backgroundColor: 'rgba(199, 122, 88, 0.3)',
+    backgroundColor: colors['outline-variant'],
   },
   detailSeverityDot: {
     width: 10,
     height: 10,
-    borderRadius: 5,
-    marginBottom: 4,
+    borderRadius: rounded.full,
+    marginBottom: spacing.xs,
   },
   detailSection: {
-    marginBottom: 16,
+    marginBottom: spacing.md,
   },
   detailSectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: spacing.xs,
   },
   detailSectionTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#C77A58',
+    color: colors.secondary,
   },
   detailSectionText: {
     fontSize: 14,
-    color: '#4A3A2A',
+    color: colors['on-surface'],
     lineHeight: 22,
   },
   hasNotes: {
-    color: '#4A3A2A',
+    color: colors['on-surface'],
   },
   noNotes: {
-    color: '#8A7A66',
+    color: colors['on-surface-variant'],
     fontStyle: 'italic',
   },
-  detailFooter: {
-    marginTop: 8,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(199, 122, 88, 0.2)',
-  },
-  detailFooterText: {
-    fontSize: 12,
-    color: '#8A7A66',
-    marginBottom: 4,
-  },
+  // Notes Modal
   notesModalContent: {
     maxHeight: '60%',
   },
   notesForText: {
     fontSize: 14,
-    color: '#5C3D2E',
-    marginBottom: 12,
+    color: colors['on-surface'],
+    marginBottom: spacing.sm,
     fontWeight: '500',
   },
   notesInput: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: colors['surface-container-low'],
+    borderRadius: rounded.DEFAULT,
+    padding: spacing.md,
     minHeight: 150,
     fontSize: 14,
-    color: '#333333',
+    color: colors['on-surface'],
     borderWidth: 1,
-    borderColor: '#E4D3BB',
+    borderColor: colors['outline-variant'],
     textAlignVertical: 'top',
   },
   notesActions: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 16,
+    gap: spacing.sm,
+    marginTop: spacing.md,
   },
   notesButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
+    paddingVertical: spacing.sm,
+    borderRadius: rounded.DEFAULT,
     alignItems: 'center',
   },
   notesCancelButton: {
-    backgroundColor: '#E4D3BB',
+    backgroundColor: colors['surface-container-low'],
   },
   notesSaveButton: {
-    backgroundColor: '#C77A58',
+    backgroundColor: colors.primary,
   },
   notesCancelText: {
-    color: '#5C3D2E',
+    color: colors['on-surface'],
     fontWeight: '600',
   },
   notesSaveText: {
-    color: '#FFFFFF',
+    color: colors['on-primary'],
     fontWeight: '600',
   },
 });

@@ -20,6 +20,25 @@ export default function CustomTabBar({ state, navigation }) {
     Settings: 'Settings',
   };
 
+  // Standard React Navigation custom-tab-bar pattern: emit the same
+  // 'tabPress' event a built-in tab bar would fire before navigating.
+  // This lets any nested screen (e.g. ResultScreen) call
+  // e.preventDefault() on it to block the switch — e.g. to confirm an
+  // unsaved result before leaving. Without this emit, screens have no
+  // event to intercept and navigate() just happens unconditionally.
+  const handleTabPress = (route, isFocused) => {
+    const event = navigation.emit({
+      type: 'tabPress',
+      target: route.key,
+      canPreventDefault: true,
+    });
+    console.log('[TabBar] emitted tabPress for', route.name, '— prevented?', event.defaultPrevented);
+
+    if (!isFocused && !event.defaultPrevented) {
+      navigation.navigate(route.name);
+    }
+  };
+
   return (
     <View style={styles.container}>
       {state.routes.map((route, index) => {
@@ -31,7 +50,7 @@ export default function CustomTabBar({ state, navigation }) {
             <TouchableOpacity
               key={route.key}
               style={styles.scanButtonWrap}
-              onPress={() => navigation.navigate(route.name)}
+              onPress={() => handleTabPress(route, isFocused)}
               activeOpacity={0.85}
             >
               <View style={styles.scanButton}>
@@ -46,7 +65,7 @@ export default function CustomTabBar({ state, navigation }) {
           <TouchableOpacity
             key={route.key}
             style={styles.tabItem}
-            onPress={() => navigation.navigate(route.name)}
+            onPress={() => handleTabPress(route, isFocused)}
             activeOpacity={0.7}
           >
             <Ionicons

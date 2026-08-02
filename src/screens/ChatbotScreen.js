@@ -9,46 +9,66 @@ import {
   KeyboardAvoidingView,
   Platform,
   Modal,
-  ScrollView,
+  Dimensions,
   Alert,
   Image,
   Animated,
+  Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 
+const { width } = Dimensions.get('window');
+const SIDEBAR_WIDTH = Math.min(340, width * 0.85);
+
 const ChatbotScreen = ({ navigation }) => {
   const [messages, setMessages] = useState([
-    { id: '1', text: 'Hello! How can I help you with your cassava farming today?', sender: 'bot' },
+    { id: '1', text: 'Hello! How can I help you with your root crop farming today?', sender: 'bot' },
   ]);
   const [inputText, setInputText] = useState('');
   const [suggestedTopics] = useState([
-    { id: '1', text: 'What are the best cassava varieties to plant?', icon: 'leaf-outline' },
-    { id: '2', text: 'How do I treat cassava mosaic disease?', icon: 'medical-outline' },
-    { id: '3', text: 'When is the right time to harvest cassava?', icon: 'calendar-outline' },
-    { id: '4', text: 'What type of fertilizer is best for cassava?', icon: 'flower-outline' },
-    { id: '5', text: 'How to prepare cassava soil properly?', icon: 'earth-outline' },
-    { id: '6', text: 'What are common pests affecting cassava?', icon: 'bug-outline' },
+    { id: '1', text: 'What are the best root crop varieties to plant?', icon: 'leaf-outline' },
+    { id: '2', text: 'How do I treat common root crop diseases?', icon: 'medical-outline' },
+    { id: '3', text: 'When is the right time to harvest root crops?', icon: 'calendar-outline' },
+    { id: '4', text: 'What type of fertilizer is best for root crops?', icon: 'flower-outline' },
+    { id: '5', text: 'How to prepare soil for root crop planting?', icon: 'earth-outline' },
+    { id: '6', text: 'What are common pests affecting root crops?', icon: 'bug-outline' },
   ]);
-  const [conversationHistory, setConversationHistory] = useState([
+  const [conversationHistory] = useState([
     { id: '1', title: 'Cassava Mosaic Disease', date: 'Today, 2:30 PM', preview: 'How to identify and treat mosaic disease' },
     { id: '2', title: 'Brown Spot Disease', date: 'Yesterday, 11:15 AM', preview: 'Treatment for brown spot disease' },
-    { id: '3', title: 'Harvesting Tips', date: 'Jan 12, 2024', preview: 'Best practices for harvesting cassava' },
-    { id: '4', title: 'Fertilizer Guide', date: 'Jan 10, 2024', preview: 'Optimal fertilizer application for cassava' },
-    { id: '5', title: 'Cassava Pest Control', date: 'Jan 8, 2024', preview: 'Managing cassava pests naturally' },
-    { id: '6', title: 'Soil Preparation', date: 'Jan 5, 2024', preview: 'How to prepare soil for cassava planting' },
+    { id: '3', title: 'Harvesting Tips', date: 'Jan 12, 2024', preview: 'Best practices for harvesting root crops' },
+    { id: '4', title: 'Fertilizer Guide', date: 'Jan 10, 2024', preview: 'Optimal fertilizer application for root crops' },
+    { id: '5', title: 'Root Crop Pest Control', date: 'Jan 8, 2024', preview: 'Managing root crop pests naturally' },
+    { id: '6', title: 'Soil Preparation', date: 'Jan 5, 2024', preview: 'How to prepare soil for root crop planting' },
   ]);
   const [showSuggestions, setShowSuggestions] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [attachments, setAttachments] = useState([]);
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingTime, setRecordingTime] = useState(0);
-  
-  const fadeAnim = useRef(new Animated.Value(1)).current;
-  const slideAnim = useRef(new Animated.Value(0)).current;
+
+  const slideAnim = useRef(new Animated.Value(-SIDEBAR_WIDTH)).current;
+  const inputRef = useRef(null);
+  const flatListRef = useRef(null);
+
+  const openHistory = () => {
+    setShowHistory(true);
+    Animated.timing(slideAnim, {
+      toValue: 0,
+      duration: 280,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const closeHistory = () => {
+    Animated.timing(slideAnim, {
+      toValue: -SIDEBAR_WIDTH,
+      duration: 240,
+      useNativeDriver: true,
+    }).start(() => setShowHistory(false));
+  };
 
   const sendMessage = (text) => {
     if (!text || !text.trim()) return;
@@ -57,6 +77,8 @@ const ChatbotScreen = ({ navigation }) => {
     setMessages((prev) => [...prev, userMessage]);
     setInputText('');
     setShowSuggestions(false);
+
+    Keyboard.dismiss();
 
     setTimeout(() => {
       const botResponse = {
@@ -75,17 +97,17 @@ const ChatbotScreen = ({ navigation }) => {
     } else if (lowerInput.includes('brown') || lowerInput.includes('spot')) {
       return 'Brown Spot Disease is caused by the fungus Cercospora henningsii. Apply copper-based fungicides, ensure proper drainage, practice crop rotation, and remove infected leaves. Plant disease-resistant varieties when possible.';
     } else if (lowerInput.includes('harvest')) {
-      return 'Cassava is typically harvested 8-12 months after planting depending on the variety. Harvest when leaves start to yellow and fall off, and the stems become woody. The roots should be firm and well-developed. Avoid harvesting during rainy periods.';
+      return 'Most root crops are harvested 8-12 months after planting depending on the variety. Harvest when leaves start to yellow and fall off, and the stems become woody. The roots or tubers should be firm and well-developed. Avoid harvesting during rainy periods.';
     } else if (lowerInput.includes('fertilizer') || lowerInput.includes('fertilize')) {
-      return 'Cassava responds well to balanced fertilization. Apply 60-90 kg N/ha, 20-30 kg P/ha, and 60-90 kg K/ha. Use organic compost or manure for better soil structure. Split nitrogen applications for optimal uptake.';
+      return 'Root crops respond well to balanced fertilization. Apply 60-90 kg N/ha, 20-30 kg P/ha, and 60-90 kg K/ha. Use organic compost or manure for better soil structure. Split nitrogen applications for optimal uptake.';
     } else if (lowerInput.includes('soil') || lowerInput.includes('prepare')) {
-      return 'Cassava grows best in well-drained, sandy loam soils with pH 5.5-6.5. Prepare soil by deep plowing (25-30 cm), remove weeds, and incorporate organic matter. Create ridges or mounds for better drainage and root development.';
+      return 'Root crops grow best in well-drained, sandy loam soils with pH 5.5-6.5. Prepare soil by deep plowing (25-30 cm), remove weeds, and incorporate organic matter. Create ridges or mounds for better drainage and root development.';
     } else if (lowerInput.includes('pest') || lowerInput.includes('insect')) {
-      return 'Common cassava pests include cassava mealybug, whiteflies, and green mites. Control through biological methods (natural predators), resistant varieties, and proper field sanitation. Use neem-based pesticides for organic control.';
+      return 'Common root crop pests include mealybugs, whiteflies, and green mites. Control through biological methods (natural predators), resistant varieties, and proper field sanitation. Use neem-based pesticides for organic control.';
     } else if (lowerInput.includes('variety') || lowerInput.includes('plant')) {
-      return 'There are many cassava varieties. Choose based on your purpose: sweet varieties for direct consumption (e.g., TMS 98/0505), bitter varieties for starch production (e.g., TMS 97/0524). Always select disease-resistant, high-yielding varieties adapted to your region.';
+      return 'There are many root crop varieties to choose from - cassava, sweet potato, taro, and yam among them. Choose based on your purpose and soil conditions, and always select disease-resistant, high-yielding varieties adapted to your region.';
     } else {
-      return 'I understand your question about cassava farming. For specific advice, I recommend consulting with your local agricultural extension officer. They can provide recommendations tailored to your specific region and conditions.';
+      return 'I understand your question about root crop farming. For specific advice, I recommend consulting with your local agricultural extension officer. They can provide recommendations tailored to your specific region and conditions.';
     }
   };
 
@@ -97,15 +119,16 @@ const ChatbotScreen = ({ navigation }) => {
   const handleNewChat = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setMessages([
-      { id: '1', text: 'Hello! How can I help you with your cassava farming today?', sender: 'bot' },
+      { id: '1', text: 'Hello! How can I help you with your root crop farming today?', sender: 'bot' },
     ]);
     setShowSuggestions(true);
+    Keyboard.dismiss();
   };
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Please grant gallery permissions to upload images of your cassava plants for diagnosis.');
+      Alert.alert('Permission needed', 'Please grant gallery permissions to upload images of your root crops for diagnosis.');
       return;
     }
 
@@ -118,14 +141,14 @@ const ChatbotScreen = ({ navigation }) => {
     if (!result.canceled) {
       setAttachments([...attachments, { id: Date.now().toString(), uri: result.assets[0].uri, type: 'image' }]);
       setShowAttachmentMenu(false);
-      Alert.alert('✅ Uploaded', 'Cassava image attached successfully! Our experts can now analyze your crop.');
+      Alert.alert('✅ Uploaded', 'Crop image attached successfully! Our experts can now analyze your crop.');
     }
   };
 
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Please grant camera permissions to take photos of your cassava plants for diagnosis.');
+      Alert.alert('Permission needed', 'Please grant camera permissions to take photos of your root crops for diagnosis.');
       return;
     }
 
@@ -137,7 +160,7 @@ const ChatbotScreen = ({ navigation }) => {
     if (!result.canceled) {
       setAttachments([...attachments, { id: Date.now().toString(), uri: result.assets[0].uri, type: 'image' }]);
       setShowAttachmentMenu(false);
-      Alert.alert('✅ Captured', 'Cassava photo captured successfully! Our team can now assess your crop health.');
+      Alert.alert('✅ Captured', 'Crop photo captured successfully! Our team can now assess your crop health.');
     }
   };
 
@@ -169,9 +192,9 @@ const ChatbotScreen = ({ navigation }) => {
       onPress={() => handleTopicPress(item)}
       activeOpacity={0.7}
     >
-      <Ionicons name={item.icon} size={20} color="#5C3D2E" />
+      <Ionicons name={item.icon} size={20} color="#2C160E" />
       <Text style={styles.topicText}>{item.text}</Text>
-      <Ionicons name="chevron-forward" size={16} color="#8A7A66" />
+      <Ionicons name="chevron-forward" size={16} color="#707A6C" />
     </TouchableOpacity>
   );
 
@@ -179,7 +202,7 @@ const ChatbotScreen = ({ navigation }) => {
     <TouchableOpacity 
       style={styles.historyItem}
       onPress={() => {
-        setShowHistory(false);
+        closeHistory();
         // Load conversation logic here
       }}
       activeOpacity={0.7}
@@ -189,7 +212,7 @@ const ChatbotScreen = ({ navigation }) => {
         <Text style={styles.historyItemPreview} numberOfLines={1}>{item.preview}</Text>
         <Text style={styles.historyItemDate}>{item.date}</Text>
       </View>
-      <Ionicons name="chevron-forward" size={20} color="#8A7A66" />
+      <Ionicons name="chevron-forward" size={20} color="#707A6C" />
     </TouchableOpacity>
   );
 
@@ -200,7 +223,7 @@ const ChatbotScreen = ({ navigation }) => {
         style={styles.attachmentRemove}
         onPress={() => removeAttachment(item.id)}
       >
-        <Ionicons name="close-circle" size={20} color="#E74C3C" />
+        <Ionicons name="close-circle" size={20} color="#BA1A1A" />
       </TouchableOpacity>
     </View>
   );
@@ -213,35 +236,38 @@ const ChatbotScreen = ({ navigation }) => {
           style={styles.menuButton}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            setShowHistory(!showHistory);
+            openHistory();
           }}
         >
-          <Ionicons name="menu-outline" size={24} color="#FFFFFF" />
+          <Ionicons name="menu-outline" size={24} color="#0D631B" />
         </TouchableOpacity>
-        <Text style={styles.headerText}>Cassava Assistant</Text>
+        <Text style={styles.headerText}>RootCare Companion</Text>
         <TouchableOpacity 
           style={styles.newChatButton}
           onPress={handleNewChat}
         >
-          <Ionicons name="create-outline" size={22} color="#FFFFFF" />
+          <Ionicons name="create-outline" size={22} color="#0D631B" />
         </TouchableOpacity>
       </View>
 
       <KeyboardAvoidingView
         style={styles.chatArea}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={90}
       >
         <FlatList
+          ref={flatListRef}
           data={messages}
           renderItem={renderMessage}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.messagesList}
           showsVerticalScrollIndicator={false}
+          onContentSizeChange={() => {
+            flatListRef.current?.scrollToEnd({ animated: true });
+          }}
           ListHeaderComponent={
             showSuggestions && messages.length === 1 ? (
               <View style={styles.suggestionsContainer}>
-                <Text style={styles.suggestionsHeader}>Cassava Farming Questions</Text>
+                <Text style={styles.suggestionsHeader}>Frequently Asked Questions</Text>
                 <FlatList
                   data={suggestedTopics}
                   renderItem={renderSuggestedTopic}
@@ -277,38 +303,29 @@ const ChatbotScreen = ({ navigation }) => {
               setShowAttachmentMenu(!showAttachmentMenu);
             }}
           >
-            <Ionicons name="attach-outline" size={24} color="#8A7A66" />
+            <Ionicons name="attach-outline" size={24} color="#707A6C" />
           </TouchableOpacity>
 
           <TextInput
+            ref={inputRef}
             style={styles.input}
-            placeholder="Ask about cassava farming..."
-            placeholderTextColor="#8A7A66"
+            placeholder="Ask about root crop farming..."
+            placeholderTextColor="#707A6C"
             value={inputText}
             onChangeText={setInputText}
             multiline
+            returnKeyType="send"
+            onSubmitEditing={() => sendMessage(inputText)}
           />
 
-          {inputText.length > 0 ? (
-            <TouchableOpacity 
-              style={styles.sendButton} 
-              onPress={() => sendMessage(inputText)} 
-              activeOpacity={0.85}
-            >
-              <Ionicons name="send" size={18} color="#FFFFFF" />
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity 
-              style={styles.micButton}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                Alert.alert('🎤 Voice Recording', 'Voice input for cassava farming questions coming soon!');
-              }}
-              activeOpacity={0.85}
-            >
-              <Ionicons name="mic-outline" size={22} color="#8A7A66" />
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity 
+            style={[styles.sendButton, !inputText.trim() && styles.sendButtonDisabled]} 
+            onPress={() => sendMessage(inputText)} 
+            activeOpacity={0.85}
+            disabled={!inputText.trim()}
+          >
+            <Ionicons name="send" size={18} color="#FFFFFF" />
+          </TouchableOpacity>
         </View>
 
         {/* Attachment menu modal */}
@@ -325,60 +342,67 @@ const ChatbotScreen = ({ navigation }) => {
           >
             <View style={styles.attachmentMenu}>
               <TouchableOpacity style={styles.attachmentMenuItem} onPress={takePhoto}>
-                <Ionicons name="camera-outline" size={24} color="#5C3D2E" />
-                <Text style={styles.attachmentMenuText}>Take Photo of Cassava</Text>
+                <Ionicons name="camera-outline" size={24} color="#2C160E" />
+                <Text style={styles.attachmentMenuText}>Take Photo of Crop</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.attachmentMenuItem} onPress={pickImage}>
-                <Ionicons name="images-outline" size={24} color="#5C3D2E" />
-                <Text style={styles.attachmentMenuText}>Upload Cassava Image</Text>
+                <Ionicons name="images-outline" size={24} color="#2C160E" />
+                <Text style={styles.attachmentMenuText}>Upload Crop Image</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.attachmentMenuItem} onPress={() => setShowAttachmentMenu(false)}>
-                <Ionicons name="close-circle-outline" size={24} color="#E74C3C" />
-                <Text style={[styles.attachmentMenuText, { color: '#E74C3C' }]}>Cancel</Text>
+                <Ionicons name="close-circle-outline" size={24} color="#BA1A1A" />
+                <Text style={[styles.attachmentMenuText, { color: '#BA1A1A' }]}>Cancel</Text>
               </TouchableOpacity>
             </View>
           </TouchableOpacity>
         </Modal>
       </KeyboardAvoidingView>
 
-      {/* History sidebar modal */}
-      <Modal
-        visible={showHistory}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowHistory(false)}
-      >
-        <View style={styles.historySidebar}>
-          <View style={styles.historyHeader}>
-            <Text style={styles.historyTitle}>Cassava Chats</Text>
-            <TouchableOpacity onPress={() => setShowHistory(false)}>
-              <Ionicons name="close" size={24} color="#5C3D2E" />
-            </TouchableOpacity>
-          </View>
-          <FlatList
-            data={conversationHistory}
-            renderItem={renderHistoryItem}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.historyList}
-            ListEmptyComponent={
-              <View style={styles.historyEmpty}>
-                <Ionicons name="leaf-outline" size={48} color="#C77A58" />
-                <Text style={styles.historyEmptyText}>No cassava conversations yet</Text>
-              </View>
-            }
-          />
+      {/* History sidebar */}
+      {showHistory && (
+        <View style={styles.historyOverlayContainer}>
           <TouchableOpacity 
-            style={styles.historyNewChat}
-            onPress={() => {
-              setShowHistory(false);
-              handleNewChat();
-            }}
+            style={styles.historyBackdrop} 
+            activeOpacity={1} 
+            onPress={closeHistory} 
+          />
+          <Animated.View
+            style={[
+              styles.historySidebar,
+              { transform: [{ translateX: slideAnim }] },
+            ]}
           >
-            <Ionicons name="add-circle-outline" size={24} color="#FFFFFF" />
-            <Text style={styles.historyNewChatText}>New Chat</Text>
-          </TouchableOpacity>
+            <View style={styles.historyHeader}>
+              <Text style={styles.historyTitle}>RootCare Chats</Text>
+              <TouchableOpacity onPress={closeHistory}>
+                <Ionicons name="close" size={24} color="#2C160E" />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={conversationHistory}
+              renderItem={renderHistoryItem}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.historyList}
+              ListEmptyComponent={
+                <View style={styles.historyEmpty}>
+                  <Ionicons name="leaf-outline" size={48} color="#0D631B" />
+                  <Text style={styles.historyEmptyText}>No conversations yet</Text>
+                </View>
+              }
+            />
+            <TouchableOpacity 
+              style={styles.historyNewChat}
+              onPress={() => {
+                closeHistory();
+                handleNewChat();
+              }}
+            >
+              <Ionicons name="add-circle-outline" size={24} color="#FFFFFF" />
+              <Text style={styles.historyNewChatText}>New Chat</Text>
+            </TouchableOpacity>
+          </Animated.View>
         </View>
-      </Modal>
+      )}
     </SafeAreaView>
   );
 };
@@ -388,26 +412,29 @@ const HEADER_HEIGHT = 52;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#DCC8AC',
+    backgroundColor: '#FFF8F6',
     ...(Platform.OS === 'web' ? { height: '100vh', overflow: 'hidden' } : {}),
   },
   header: {
     width: '100%',
     minHeight: HEADER_HEIGHT,
-    backgroundColor: '#C77A58',
+    backgroundColor: 'rgba(255, 248, 246, 0.8)',
+    backdropFilter: 'blur(20px)',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 12,
     paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(191, 202, 186, 0.3)',
   },
   menuButton: {
     padding: 4,
   },
   headerText: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontWeight: '600',
+    color: '#0D631B',
   },
   newChatButton: {
     padding: 4,
@@ -428,11 +455,11 @@ const styles = StyleSheet.create({
   },
   userMessage: {
     alignSelf: 'flex-end',
-    backgroundColor: '#C77A58',
+    backgroundColor: '#0D631B',
   },
   botMessage: {
     alignSelf: 'flex-start',
-    backgroundColor: '#E4D3BB',
+    backgroundColor: '#FFE2DA',
   },
   messageText: {
     fontSize: 14,
@@ -442,11 +469,10 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   botText: {
-    color: '#333333',
+    color: '#2C160E',
   },
-  // Suggested Topics
   suggestionsContainer: {
-    backgroundColor: 'rgba(228, 211, 187, 0.5)',
+    backgroundColor: 'rgba(255, 241, 237, 0.7)',
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
@@ -454,7 +480,7 @@ const styles = StyleSheet.create({
   suggestionsHeader: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#5C3D2E',
+    color: '#2C160E',
     marginBottom: 12,
   },
   suggestionsList: {
@@ -463,19 +489,23 @@ const styles = StyleSheet.create({
   topicItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5EDE3',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 14,
     marginBottom: 6,
     gap: 10,
+    shadowColor: 'rgba(93, 64, 55, 0.08)',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 1,
+    shadowRadius: 4,
+    elevation: 1,
   },
   topicText: {
     flex: 1,
     fontSize: 14,
-    color: '#5C3D2E',
+    color: '#2C160E',
   },
-  // Attachments
   attachmentsContainer: {
     paddingHorizontal: 12,
     paddingBottom: 8,
@@ -499,14 +529,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 10,
   },
-  // Input
   inputContainer: {
     flexDirection: 'row',
     padding: 12,
     paddingBottom: 20,
-    backgroundColor: '#DCC8AC',
+    backgroundColor: '#FFF8F6',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(139, 74, 50, 0.2)',
+    borderTopColor: 'rgba(191, 202, 186, 0.3)',
     alignItems: 'flex-end',
     gap: 8,
   },
@@ -518,17 +547,17 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     borderWidth: 1,
-    borderColor: 'rgba(139, 74, 50, 0.25)',
+    borderColor: 'rgba(122, 86, 73, 0.3)',
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 10,
     maxHeight: 100,
     fontSize: 14,
-    color: '#333333',
+    color: '#2C160E',
     backgroundColor: '#FFFFFF',
   },
   sendButton: {
-    backgroundColor: '#C77A58',
+    backgroundColor: '#0D631B',
     width: 42,
     height: 42,
     borderRadius: 21,
@@ -540,26 +569,25 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
-  micButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#E4D3BB',
+  sendButtonDisabled: {
+    opacity: 0.5,
   },
-  // Attachment Menu
   attachmentMenuOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(44, 22, 14, 0.5)',
     justifyContent: 'flex-end',
   },
   attachmentMenu: {
-    backgroundColor: '#F5EDE3',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    backgroundColor: '#FFF1ED',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     padding: 20,
     paddingBottom: 40,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 10,
   },
   attachmentMenuItem: {
     flexDirection: 'row',
@@ -567,27 +595,40 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     gap: 14,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(199, 122, 88, 0.2)',
+    borderBottomColor: 'rgba(191, 202, 186, 0.3)',
   },
   attachmentMenuText: {
     fontSize: 16,
-    color: '#5C3D2E',
-    fontWeight: '500',
+    color: '#2C160E',
   },
-  // History Sidebar
-  historySidebar: {
+  historyOverlayContainer: {
     position: 'absolute',
-    left: 0,
     top: 0,
+    left: 0,
+    right: 0,
     bottom: 0,
-    width: '85%',
-    maxWidth: 340,
-    backgroundColor: '#F5EDE3',
+    flexDirection: 'row',
+    zIndex: 100,
+  },
+  historyBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(44, 22, 14, 0.5)',
+  },
+  historySidebar: {
+    width: SIDEBAR_WIDTH,
+    height: '100%',
+    backgroundColor: '#FFF1ED',
+    borderTopRightRadius: 24,
+    borderBottomRightRadius: 24,
     shadowColor: '#000',
     shadowOffset: { width: 4, height: 0 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 10,
   },
   historyHeader: {
     flexDirection: 'row',
@@ -596,12 +637,12 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 48,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(199, 122, 88, 0.2)',
+    borderBottomColor: 'rgba(191, 202, 186, 0.3)',
   },
   historyTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#5C3D2E',
+    color: '#2C160E',
   },
   historyList: {
     padding: 16,
@@ -613,7 +654,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 8,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(199, 122, 88, 0.1)',
+    borderBottomColor: 'rgba(191, 202, 186, 0.2)',
   },
   historyItemContent: {
     flex: 1,
@@ -622,27 +663,27 @@ const styles = StyleSheet.create({
   historyItemTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#5C3D2E',
+    color: '#2C160E',
   },
   historyItemPreview: {
     fontSize: 13,
-    color: '#8A7A66',
+    color: '#40493D',
   },
   historyItemDate: {
     fontSize: 11,
-    color: '#B0A090',
+    color: '#707A6C',
   },
   historyNewChat: {
     position: 'absolute',
     bottom: 30,
     left: 16,
     right: 16,
-    backgroundColor: '#C77A58',
+    backgroundColor: '#0D631B',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 999,
     gap: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -663,7 +704,7 @@ const styles = StyleSheet.create({
   },
   historyEmptyText: {
     fontSize: 16,
-    color: '#8A7A66',
+    color: '#707A6C',
   },
 });
 

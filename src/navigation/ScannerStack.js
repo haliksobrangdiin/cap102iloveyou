@@ -1,3 +1,4 @@
+// navigation/ScannerStack.js
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import ScannerScreen from '../screens/ScannerScreen';
@@ -7,9 +8,20 @@ const Stack = createStackNavigator();
 
 export default function ScannerStack() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator 
+      screenOptions={{ 
+        headerShown: false,
+      }}
+    >
       <Stack.Screen name="ScannerMain" component={ScannerScreen} />
-      <Stack.Screen name="Result" component={ResultScreen} />
+      <Stack.Screen 
+        name="Result" 
+        component={ResultScreen}
+        options={{
+          // This hides the tab bar for this specific screen
+          tabBarStyle: { display: 'none' },
+        }}
+      />
     </Stack.Navigator>
   );
 }
