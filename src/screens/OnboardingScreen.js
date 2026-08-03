@@ -49,11 +49,11 @@ const OnboardingScreen = ({ onFinish }) => {
     },
     {
       id: '4',
-      title: 'Join the Community',
-      subtitle: 'Connect with farmers and agricultural experts.',
+      title: 'Grow Your Income',
+      subtitle: 'Connect with farmers, negotiate fair prices, and earn more.',
       image: require('../assets/LastSlide.png'),
-      description: 'Share knowledge and grow together',
-      icon: 'people-outline',
+      description: 'Buy and sell root crops directly through the marketplace',
+      icon: 'storefront-outline',
     },
   ];
 
@@ -95,7 +95,10 @@ const OnboardingScreen = ({ onFinish }) => {
       return 'Next';
     };
 
-    const showWhitePlate = !isFirstSlide && !isLast;
+    // Only the very first slide (the transparent logo intro) stays plain -
+    // every other slide, including the last one, now gets the white card
+    // treatment with a fully-covering image (no letterboxed whitespace).
+    const showWhitePlate = !isFirstSlide;
 
     return (
       <View style={styles.slide}>
@@ -108,7 +111,11 @@ const OnboardingScreen = ({ onFinish }) => {
                 showWhitePlate ? styles.imageWrapper : styles.imageWrapperPlain
               }
             >
-              <Image source={item.image} style={styles.mainImage} resizeMode="contain" />
+              <Image
+                source={item.image}
+                style={styles.mainImage}
+                resizeMode={showWhitePlate ? 'cover' : 'contain'}
+              />
 
               {isSecondSlide && (
                 <View style={styles.scannerOverlay}>
