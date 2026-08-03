@@ -42,7 +42,7 @@ const colors = {
 const BOTTOM_BAR_HEIGHT = 72;
 const FAB_SIZE = 64;
 
-export default function CustomTabBar({ state, navigation }) {
+export default function CustomTabBar({ state, navigation, descriptors }) {
   const routeConfig = {
     Home: { icon: 'home-outline', activeIcon: 'home', label: 'Home' },
     Chatbot: { icon: 'chatbubble-ellipses-outline', activeIcon: 'chatbubble-ellipses', label: 'Ask AI' },
@@ -56,7 +56,17 @@ export default function CustomTabBar({ state, navigation }) {
     Marketplace: { icon: 'storefront-outline', activeIcon: 'storefront', label: 'Marketplace', hidden: true },
   };
 
-  const currentRoute = state.routes[state.index].name;
+  const currentRoute = state.routes[state.index];
+
+  // With a custom tabBar component, React Navigation no longer auto-hides the
+  // bar when a screen calls navigation.setOptions({ tabBarStyle: { display: 'none' } })
+  // (e.g. ResultScreen hiding the bar while its confirm modal is open/behind it).
+  // That option is still stored on the descriptor - we just have to read it
+  // ourselves and bail out of rendering when it says 'none'.
+  const { options } = descriptors[currentRoute.key];
+  if (options?.tabBarStyle?.display === 'none') {
+    return null;
+  }
 
   return (
     <View style={styles.container}>

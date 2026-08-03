@@ -109,7 +109,106 @@ const sampleData = [
     symptoms: 'Yellow mosaic patterns on leaves, stunted growth, distorted leaves.',
     notes: 'Found in the northern field. Affected about 30% of the crop.',
   },
-  // ... keep all your sample data
+  {
+    id: '2',
+    title: 'Brown Spot Disease',
+    subtitle: 'Fungal Infection Detected',
+    detail: 'Severity: Medium',
+    extra: 'Scanned: Jan 14, 2024 . 11:15 AM',
+    image: require('../assets/BrownSpot.png'),
+    isArchived: false,
+    isSaved: false,
+    archivedAt: null,
+    createdAt: '2024-01-14T11:15:00',
+    diseaseType: 'Fungal',
+    severity: 'Medium',
+    accuracy: 87.2,
+    description: 'Fungal disease causing brown spots on leaves. Lesions start as small water-soaked spots that enlarge and turn brown.',
+    treatment: 'Apply appropriate fungicides. Ensure proper drainage and avoid overhead irrigation.',
+    prevention: 'Practice crop rotation. Use resistant varieties and maintain proper plant spacing.',
+    symptoms: 'Brown circular spots on leaves, yellow halos around spots, leaf drop.',
+    notes: '',
+  },
+  {
+    id: '3',
+    title: 'Cassava Green Mite',
+    subtitle: 'Pest Infestation Detected',
+    detail: 'Severity: High',
+    extra: 'Scanned: Jan 12, 2024 . 9:45 AM',
+    image: require('../assets/GreenMite.png'),
+    isArchived: false,
+    isSaved: false,
+    archivedAt: null,
+    createdAt: '2024-01-12T09:45:00',
+    diseaseType: 'Pest',
+    severity: 'High',
+    accuracy: 92.1,
+    description: 'Pest infestation causing leaf damage and stunted growth. Green mites feed on plant sap, causing yellowing and curling.',
+    treatment: 'Apply appropriate miticides or pesticides. Introduce natural predators like predatory mites.',
+    prevention: 'Regular monitoring of fields. Use resistant varieties and maintain good field hygiene.',
+    symptoms: 'Yellowing leaves, curled leaves, stunted growth, visible mites on leaves.',
+    notes: '',
+  },
+  {
+    id: '4',
+    title: 'Healthy Cassava Leaf',
+    subtitle: 'No Disease Detected',
+    detail: 'Status: Healthy',
+    extra: 'Scanned: Jan 10, 2024 . 4:20 PM',
+    image: require('../assets/HealthyLeaf.png'),
+    isArchived: false,
+    isSaved: false,
+    archivedAt: null,
+    createdAt: '2024-01-10T16:20:00',
+    diseaseType: 'Healthy',
+    severity: 'None',
+    accuracy: 98.3,
+    description: 'The leaf appears healthy with no signs of disease. Continue maintaining good agricultural practices.',
+    treatment: 'Continue current maintenance practices. Regular monitoring is recommended.',
+    prevention: 'Maintain proper farming practices. Regular inspection and early detection.',
+    symptoms: 'No visible symptoms. Healthy green leaves with normal growth.',
+    notes: '',
+  },
+  {
+    id: '5',
+    title: 'Cassava Bacterial Blight',
+    subtitle: 'Bacterial Infection Detected',
+    detail: 'Severity: Medium',
+    extra: 'Scanned: Jan 8, 2024 . 10:00 AM',
+    image: require('../assets/BacterialBlight.png'),
+    isArchived: false,
+    isSaved: false,
+    archivedAt: null,
+    createdAt: '2024-01-08T10:00:00',
+    diseaseType: 'Bacterial',
+    severity: 'Medium',
+    accuracy: 89.5,
+    description: 'Bacterial infection causing blight on leaves and stems. Angular water-soaked lesions that turn brown and necrotic.',
+    treatment: 'Remove infected plants. Apply copper-based bactericides and maintain proper field hygiene.',
+    prevention: 'Use disease-free planting material. Practice crop rotation and avoid overhead irrigation.',
+    symptoms: 'Angular water-soaked lesions, brown spots with yellow halos, wilting.',
+    notes: '',
+  },
+  {
+    id: '6',
+    title: 'Cassava Anthracnose',
+    subtitle: 'Fungal Disease Detected',
+    detail: 'Severity: Low',
+    extra: 'Scanned: Jan 5, 2024 . 1:30 PM',
+    image: require('../assets/Anthracnose.png'),
+    isArchived: false,
+    isSaved: false,
+    archivedAt: null,
+    createdAt: '2024-01-05T13:30:00',
+    diseaseType: 'Fungal',
+    severity: 'Low',
+    accuracy: 85.9,
+    description: 'Fungal disease causing lesions on leaves and stems. Small brown spots that enlarge and develop dark margins.',
+    treatment: 'Apply appropriate fungicides. Improve air circulation and maintain proper drainage.',
+    prevention: 'Avoid overhead irrigation. Practice crop rotation and use resistant varieties.',
+    symptoms: 'Brown lesions on leaves, dark margins around spots, stem cankers.',
+    notes: '',
+  },
 ];
 
 const HistoryScreen = ({ navigation }) => {
@@ -763,29 +862,34 @@ const HistoryScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Simplified Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="arrow-back" size={24} color={colors['on-surface']} />
-        </TouchableOpacity>
         <Text style={styles.headerText}>Scan History</Text>
         <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.headerIconButton} activeOpacity={0.7}>
-            <Ionicons name="notifications-outline" size={22} color={colors['on-surface']} />
+          {/* Grid/List toggle button */}
+          <TouchableOpacity
+            style={styles.headerIconButton}
+            onPress={() => {
+              const nextMode = viewMode === 'list' ? 'detailed' : 'list';
+              setViewMode(nextMode);
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }}
+            activeOpacity={0.7}
+          >
+            <Ionicons 
+              name={viewMode === 'list' ? 'grid-outline' : 'list-outline'} 
+              size={22} 
+              color={colors['on-surface']} 
+            />
           </TouchableOpacity>
+          {/* Filter/Sort button */}
           <TouchableOpacity
             style={styles.headerIconButton}
             onPress={() => setFilterModalVisible(true)}
             activeOpacity={0.7}
           >
-            <Ionicons name="search-outline" size={22} color={colors['on-surface']} />
+            <Ionicons name="options-outline" size={22} color={colors['on-surface']} />
           </TouchableOpacity>
-          <View style={styles.avatarCircle}>
-            <Ionicons name="person" size={16} color={colors['on-secondary']} />
-          </View>
         </View>
       </View>
 
@@ -879,16 +983,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors['outline-variant'],
   },
-  backButton: {
-    padding: spacing.xs,
-  },
   headerText: {
     fontFamily: 'Montserrat',
     fontSize: 18,
     fontWeight: '700',
     color: colors['on-surface'],
-    flex: 1,
-    marginLeft: spacing.xs,
   },
   headerActions: {
     flexDirection: 'row',
@@ -897,14 +996,6 @@ const styles = StyleSheet.create({
   },
   headerIconButton: {
     padding: spacing.xs,
-  },
-  avatarCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: rounded.full,
-    backgroundColor: colors.secondary,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   toggleContainer: {
     flexDirection: 'row',

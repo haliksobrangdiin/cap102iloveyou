@@ -51,6 +51,20 @@ const rounded = { sm: 4, DEFAULT: 8, md: 12, lg: 16, xl: 24, full: 9999 };
 const HEADER_HEIGHT = 56;
 const MIN_TOUCH = 48;
 
+// Walk up the navigation tree until we find the nearest Tab Navigator.
+// ResultScreen lives inside ScannerStack (a Stack Navigator), which itself
+// lives inside MainTabs (the Tab Navigator) - so navigation.getParent()
+// alone only reaches the Stack, not the Tab bar. Setting tabBarStyle on the
+// Stack does nothing, which is why the CustomTabBar was staying visible
+// (and tappable) underneath the confirmation modal.
+const findTabNavigator = (navigation) => {
+  let nav = navigation.getParent();
+  while (nav && nav.getState()?.type !== 'tab') {
+    nav = nav.getParent();
+  }
+  return nav;
+};
+
 const ResultScreen = ({ route, navigation }) => {
   const { imageUri, scanDate } = route.params || {};
   const [isSaved, setIsSaved] = useState(false);
@@ -72,18 +86,20 @@ const ResultScreen = ({ route, navigation }) => {
     isSavedRef.current = isSaved;
   }, [isSaved]);
 
-  // Hide tab bar when this screen is focused
+  // Hide tab bar for the entire time this screen is focused (not just while
+  // the modal is open) - now correctly targets the Tab Navigator instead of
+  // the intermediate Stack Navigator.
   useEffect(() => {
-    const parent = navigation.getParent();
-    if (parent) {
-      parent.setOptions({
+    const tabNavigator = findTabNavigator(navigation);
+    if (tabNavigator) {
+      tabNavigator.setOptions({
         tabBarStyle: { display: 'none' },
       });
     }
     return () => {
-      const parent = navigation.getParent();
-      if (parent) {
-        parent.setOptions({
+      const tn = findTabNavigator(navigation);
+      if (tn) {
+        tn.setOptions({
           tabBarStyle: { display: 'flex' },
         });
       }
@@ -168,10 +184,7 @@ const ResultScreen = ({ route, navigation }) => {
 
   // Handle tab navigation - use requestAnimationFrame instead of setTimeout
   useEffect(() => {
-    let tabNavigator = navigation.getParent();
-    while (tabNavigator && tabNavigator.getState()?.type !== 'tab') {
-      tabNavigator = tabNavigator.getParent();
-    }
+    const tabNavigator = findTabNavigator(navigation);
     if (!tabNavigator) return undefined;
 
     const unsubscribe = tabNavigator.addListener('tabPress', (e) => {

@@ -26,30 +26,106 @@ import weatherImage from '../assets/weather.png';
 import marketImage from '../assets/market.png';
 import alertsImage from '../assets/alerts.png';
 
-const HomeScreen = ({ navigation }) => {
-  const scanScale = useState(new Animated.Value(1))[0];
-  const [weatherModalVisible, setWeatherModalVisible] = useState(false);
-  
-  // ===== DYNAMIC HEALTH DATA =====
-  const [healthData, setHealthData] = useState({
-    percentage: 85,
-    status: 'Stable',
-    fields: 3,
-    area: '12.4',
-    risk: 'Low',
-  });
+// ===== STATIC CONTENT (moved outside the component so it isn't recreated
+// on every render - none of this depends on HomeScreen's state) =====
+const weatherAlerts = [
+  {
+    id: '1',
+    type: 'Rain Advisory',
+    severity: 'Moderate',
+    icon: 'rainy',
+    title: 'Light Rain Expected',
+    description: 'Light rain expected in your area tomorrow morning. Good for crop growth.',
+    recommendation: 'Consider applying fertilizer before the rain.',
+    time: 'Tomorrow, 6:00 AM',
+  },
+  {
+    id: '2',
+    type: 'Sunny',
+    severity: 'Good',
+    icon: 'sunny',
+    title: 'Perfect Growing Conditions',
+    description: 'Sunny with moderate temperatures. Ideal for cassava growth.',
+    recommendation: 'Great day for field work and planting.',
+    time: 'Today, 12:00 PM',
+  },
+];
 
-  // ===== CALENDAR DATA =====
+const fertilizerTips = [
+  {
+    id: '1',
+    title: '🌱 Compost Application',
+    description: 'Apply 5-10 tons of compost per hectare 2 weeks before planting.',
+    timing: 'Before Planting',
+  },
+  {
+    id: '2',
+    title: '🧪 Nitrogen Fertilizer',
+    description: 'Apply 60-80 kg N/ha at 4-6 weeks after planting for optimal growth.',
+    timing: '4-6 Weeks After Planting',
+  },
+  {
+    id: '3',
+    title: '💧 Potassium & Phosphorus',
+    description: 'Apply 50-100 kg K2O/ha and 40-60 kg P2O5/ha during early growth.',
+    timing: '2-3 Months After Planting',
+  },
+];
+
+const cropCareTips = [
+  {
+    id: '1',
+    icon: '🌿',
+    title: 'Weed Control',
+    description: 'Regular weeding helps reduce competition for nutrients and water.',
+  },
+  {
+    id: '2',
+    icon: '💧',
+    title: 'Water Management',
+    description: 'Maintain soil moisture but avoid waterlogging. Water deeply once a week.',
+  },
+  {
+    id: '3',
+    icon: '🧪',
+    title: 'Pest Management',
+    description: 'Monitor regularly for pest infestation. Use organic pesticides if needed.',
+  },
+  {
+    id: '4',
+    icon: '🌾',
+    title: 'Harvesting',
+    description: 'Cassava is ready 8-12 months after planting. Check by brushing soil away.',
+  },
+];
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+const getDaysInMonth = (month, year) => new Date(year, month + 1, 0).getDate();
+const getFirstDayOfMonth = (month, year) => new Date(year, month, 1).getDay();
+
+// ===== WEATHER ALERT MODAL =====
+// Defined OUTSIDE HomeScreen so its component identity stays stable across
+// HomeScreen re-renders. Previously this was declared inside HomeScreen's
+// function body, which meant every re-render (including the one triggered
+// by changing the calendar month) created a brand new WeatherAlertModal
+// function/component. React saw that as a different component type at the
+// same position in the tree, so it unmounted the old <Modal> and mounted a
+// fresh one - which replayed the "slide" entrance animation, making it look
+// like the modal was popping up again every time the month changed.
+//
+// The calendar's own selectedDate state now also lives here instead of in
+// HomeScreen, so navigating months never touches HomeScreen's state at all.
+const WeatherAlertModal = ({ visible, onClose }) => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const currentMonth = selectedDate.getMonth();
   const currentYear = selectedDate.getFullYear();
-  
-  const getDaysInMonth = (month, year) => {
-    return new Date(year, month + 1, 0).getDate();
-  };
 
-  const getFirstDayOfMonth = (month, year) => {
-    return new Date(year, month, 1).getDay();
+  const changeMonth = (offset) => {
+    const newDate = new Date(selectedDate);
+    newDate.setMonth(newDate.getMonth() + offset);
+    setSelectedDate(newDate);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
   const renderCalendar = () => {
@@ -58,25 +134,22 @@ const HomeScreen = ({ navigation }) => {
     const days = [];
     const today = new Date();
 
-    // Empty days for padding
     for (let i = 0; i < firstDay; i++) {
       days.push(<View key={`empty-${i}`} style={styles.calendarDayEmpty} />);
     }
 
-    // Actual days
     for (let i = 1; i <= daysInMonth; i++) {
-      const isToday = i === today.getDate() && 
-                      currentMonth === today.getMonth() && 
+      const isToday = i === today.getDate() &&
+                      currentMonth === today.getMonth() &&
                       currentYear === today.getFullYear();
-      const isWeekend = new Date(currentYear, currentMonth, i).getDay() === 0 || 
+      const isWeekend = new Date(currentYear, currentMonth, i).getDay() === 0 ||
                         new Date(currentYear, currentMonth, i).getDay() === 6;
-      
-      // Mark good planting days (e.g., 5, 10, 15, 20, 25)
+
       const isGoodDay = [5, 10, 15, 20, 25].includes(i);
-      
+
       days.push(
-        <TouchableOpacity 
-          key={`day-${i}`} 
+        <TouchableOpacity
+          key={`day-${i}`}
           style={[
             styles.calendarDay,
             isToday && styles.calendarDayToday,
@@ -105,79 +178,160 @@ const HomeScreen = ({ navigation }) => {
     return days;
   };
 
-  // ===== WEATHER ALERT DATA =====
-  const weatherAlerts = [
-    {
-      id: '1',
-      type: 'Rain Advisory',
-      severity: 'Moderate',
-      icon: 'rainy',
-      title: 'Light Rain Expected',
-      description: 'Light rain expected in your area tomorrow morning. Good for crop growth.',
-      recommendation: 'Consider applying fertilizer before the rain.',
-      time: 'Tomorrow, 6:00 AM',
-    },
-    {
-      id: '2',
-      type: 'Sunny',
-      severity: 'Good',
-      icon: 'sunny',
-      title: 'Perfect Growing Conditions',
-      description: 'Sunny with moderate temperatures. Ideal for cassava growth.',
-      recommendation: 'Great day for field work and planting.',
-      time: 'Today, 12:00 PM',
-    },
-  ];
+  return (
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={visible}
+      onRequestClose={onClose}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          {/* Modal Header */}
+          <View style={styles.modalHeader}>
+            <View style={styles.modalHeaderLeft}>
+              <Ionicons name="cloud-outline" size={24} color="#0D631B" />
+              <Text style={styles.modalHeaderTitle}>Weather & Care Guide</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                onClose();
+              }}
+            >
+              <Ionicons name="close" size={24} color="#2C160E" />
+            </TouchableOpacity>
+          </View>
 
-  // ===== FERTILIZER TIPS =====
-  const fertilizerTips = [
-    {
-      id: '1',
-      title: '🌱 Compost Application',
-      description: 'Apply 5-10 tons of compost per hectare 2 weeks before planting.',
-      timing: 'Before Planting',
-    },
-    {
-      id: '2',
-      title: '🧪 Nitrogen Fertilizer',
-      description: 'Apply 60-80 kg N/ha at 4-6 weeks after planting for optimal growth.',
-      timing: '4-6 Weeks After Planting',
-    },
-    {
-      id: '3',
-      title: '💧 Potassium & Phosphorus',
-      description: 'Apply 50-100 kg K2O/ha and 40-60 kg P2O5/ha during early growth.',
-      timing: '2-3 Months After Planting',
-    },
-  ];
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.modalScrollContent}
+          >
+            {/* Weather Summary */}
+            <View style={styles.weatherSummary}>
+              <View style={styles.weatherSummaryLeft}>
+                <Ionicons name="sunny" size={32} color="#F59E0B" />
+                <View>
+                  <Text style={styles.weatherSummaryTemp}>28°C</Text>
+                  <Text style={styles.weatherSummaryDesc}>Sunny • Perfect Conditions</Text>
+                </View>
+              </View>
+              <View style={styles.weatherSummaryRight}>
+                <Text style={styles.weatherSummaryLabel}>Humidity</Text>
+                <Text style={styles.weatherSummaryValue}>65%</Text>
+              </View>
+            </View>
 
-  // ===== ROOT CROP CARE TIPS =====
-  const cropCareTips = [
-    {
-      id: '1',
-      icon: '🌿',
-      title: 'Weed Control',
-      description: 'Regular weeding helps reduce competition for nutrients and water.',
-    },
-    {
-      id: '2',
-      icon: '💧',
-      title: 'Water Management',
-      description: 'Maintain soil moisture but avoid waterlogging. Water deeply once a week.',
-    },
-    {
-      id: '3',
-      icon: '🧪',
-      title: 'Pest Management',
-      description: 'Monitor regularly for pest infestation. Use organic pesticides if needed.',
-    },
-    {
-      id: '4',
-      icon: '🌾',
-      title: 'Harvesting',
-      description: 'Cassava is ready 8-12 months after planting. Check by brushing soil away.',
-    },
-  ];
+            {/* ===== CALENDAR SECTION ===== */}
+            <View style={styles.calendarSection}>
+              <View style={styles.calendarHeader}>
+                <TouchableOpacity onPress={() => changeMonth(-1)}>
+                  <Ionicons name="chevron-back" size={20} color="#2C160E" />
+                </TouchableOpacity>
+                <Text style={styles.calendarTitle}>
+                  {MONTHS[currentMonth]} {currentYear}
+                </Text>
+                <TouchableOpacity onPress={() => changeMonth(1)}>
+                  <Ionicons name="chevron-forward" size={20} color="#2C160E" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Calendar Grid */}
+              <View style={styles.calendarGrid}>
+                {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => (
+                  <View key={day} style={styles.calendarDayHeader}>
+                    <Text style={styles.calendarDayHeaderText}>{day}</Text>
+                  </View>
+                ))}
+                {renderCalendar()}
+              </View>
+
+              <View style={styles.calendarLegend}>
+                <View style={styles.legendItem}>
+                  <View style={[styles.legendDot, styles.legendGood]} />
+                  <Text style={styles.legendText}>Good Planting Day</Text>
+                </View>
+                <View style={styles.legendItem}>
+                  <View style={[styles.legendDot, styles.legendToday]} />
+                  <Text style={styles.legendText}>Today</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* ===== FERTILIZER TIPS ===== */}
+            <View style={styles.sectionContainer}>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="flask-outline" size={22} color="#0D631B" />
+                <Text style={styles.sectionTitle}>Fertilizer Application Tips</Text>
+              </View>
+              {fertilizerTips.map((tip) => (
+                <View key={tip.id} style={styles.tipCard}>
+                  <Text style={styles.tipTitle}>{tip.title}</Text>
+                  <Text style={styles.tipDescription}>{tip.description}</Text>
+                  <View style={styles.tipTiming}>
+                    <Ionicons name="time-outline" size={14} color="#F59E0B" />
+                    <Text style={styles.tipTimingText}>{tip.timing}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+
+            {/* ===== ROOT CROP CARE TIPS ===== */}
+            <View style={styles.sectionContainer}>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="leaf-outline" size={22} color="#0D631B" />
+                <Text style={styles.sectionTitle}>Root Crop Care Guide</Text>
+              </View>
+              <View style={styles.careGrid}>
+                {cropCareTips.map((tip) => (
+                  <View key={tip.id} style={styles.careCard}>
+                    <Text style={styles.careIcon}>{tip.icon}</Text>
+                    <Text style={styles.careTitle}>{tip.title}</Text>
+                    <Text style={styles.careDescription}>{tip.description}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            {/* Weather Alerts */}
+            <View style={styles.sectionContainer}>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="warning-outline" size={22} color="#F97316" />
+                <Text style={styles.sectionTitle}>Weather Alerts</Text>
+              </View>
+              {weatherAlerts.map((alert) => (
+                <View key={alert.id} style={styles.alertItem}>
+                  <View style={styles.alertIconContainer}>
+                    <Ionicons name={alert.icon === 'rainy' ? 'rainy-outline' : 'sunny-outline'} size={24} color="#0D631B" />
+                  </View>
+                  <View style={styles.alertContent}>
+                    <Text style={styles.alertTitle}>{alert.title}</Text>
+                    <Text style={styles.alertDescription}>{alert.description}</Text>
+                    <View style={styles.alertTime}>
+                      <Ionicons name="time-outline" size={14} color="#707A6C" />
+                      <Text style={styles.alertTimeText}>{alert.time}</Text>
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+const HomeScreen = ({ navigation }) => {
+  const scanScale = useState(new Animated.Value(1))[0];
+  const [weatherModalVisible, setWeatherModalVisible] = useState(false);
+
+  // ===== SCAN STREAK DATA =====
+  const [streakData, setStreakData] = useState({
+    count: 5,
+    scannedToday: [true, true, true, true, true, false, false], // Mon-Sun
+  });
 
   const startPulse = () => {
     Animated.sequence([
@@ -197,252 +351,6 @@ const HomeScreen = ({ navigation }) => {
   React.useEffect(() => {
     startPulse();
   }, []);
-
-  // ===== DYNAMIC PROGRESS CIRCLE COMPONENT =====
-  const ProgressCircle = ({ percentage, size = 80, strokeWidth = 6, color = '#0D631B' }) => {
-    const getColor = () => {
-      if (percentage >= 80) return '#0D631B';
-      if (percentage >= 60) return '#F59E0B';
-      if (percentage >= 40) return '#F97316';
-      return '#DC2626';
-    };
-
-    const ringColor = color || getColor();
-
-    return (
-      <View style={[styles.healthRing, { width: size, height: size, borderRadius: size / 2 }]}>
-        <View style={[styles.healthRingBackground, { width: size, height: size, borderRadius: size / 2 }]}>
-          <View
-            style={[
-              styles.ringTrack,
-              {
-                width: size,
-                height: size,
-                borderRadius: size / 2,
-                borderWidth: strokeWidth,
-                borderColor: '#E8F5E9',
-              },
-            ]}
-          />
-          {percentage > 50 && (
-            <View
-              style={[
-                styles.ringHalf,
-                styles.ringLeft,
-                {
-                  width: size,
-                  height: size,
-                  borderRadius: size / 2,
-                  borderWidth: strokeWidth,
-                  borderColor: ringColor,
-                  transform: [{ rotate: `${(percentage - 50) / 50 * 180}deg` }],
-                },
-              ]}
-            />
-          )}
-          <View
-            style={[
-              styles.ringHalf,
-              styles.ringRight,
-              {
-                width: size,
-                height: size,
-                borderRadius: size / 2,
-                borderWidth: strokeWidth,
-                borderColor: ringColor,
-                transform: [{ rotate: `${percentage / 50 * 180}deg` }],
-              },
-            ]}
-          />
-          <View
-            style={[
-              styles.healthRingCenter,
-              {
-                width: size - strokeWidth * 2 - 4,
-                height: size - strokeWidth * 2 - 4,
-                borderRadius: (size - strokeWidth * 2 - 4) / 2,
-              },
-            ]}
-          >
-            <Text style={[styles.healthRingText, { fontSize: size * 0.22 }]}>
-              {percentage}%
-            </Text>
-          </View>
-        </View>
-      </View>
-    );
-  };
-
-  // ===== DYNAMIC STATUS TEXT =====
-  const getStatusColor = (percentage) => {
-    if (percentage >= 80) return '#0D631B';
-    if (percentage >= 60) return '#F59E0B';
-    if (percentage >= 40) return '#F97316';
-    return '#DC2626';
-  };
-
-  const getStatusText = (percentage) => {
-    if (percentage >= 80) return 'Excellent';
-    if (percentage >= 60) return 'Stable';
-    if (percentage >= 40) return 'Caution';
-    return 'Critical';
-  };
-
-  // ===== WEATHER ALERT MODAL =====
-  const WeatherAlertModal = () => {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-    const changeMonth = (offset) => {
-      const newDate = new Date(selectedDate);
-      newDate.setMonth(newDate.getMonth() + offset);
-      setSelectedDate(newDate);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    };
-
-    return (
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={weatherModalVisible}
-        onRequestClose={() => setWeatherModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            {/* Modal Header */}
-            <View style={styles.modalHeader}>
-              <View style={styles.modalHeaderLeft}>
-                <Ionicons name="cloud-outline" size={24} color="#0D631B" />
-                <Text style={styles.modalHeaderTitle}>Weather & Care Guide</Text>
-              </View>
-              <TouchableOpacity
-                style={styles.modalCloseButton}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setWeatherModalVisible(false);
-                }}
-              >
-                <Ionicons name="close" size={24} color="#2C160E" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView 
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.modalScrollContent}
-            >
-              {/* Weather Summary */}
-              <View style={styles.weatherSummary}>
-                <View style={styles.weatherSummaryLeft}>
-                  <Ionicons name="sunny" size={32} color="#F59E0B" />
-                  <View>
-                    <Text style={styles.weatherSummaryTemp}>28°C</Text>
-                    <Text style={styles.weatherSummaryDesc}>Sunny • Perfect Conditions</Text>
-                  </View>
-                </View>
-                <View style={styles.weatherSummaryRight}>
-                  <Text style={styles.weatherSummaryLabel}>Humidity</Text>
-                  <Text style={styles.weatherSummaryValue}>65%</Text>
-                </View>
-              </View>
-
-              {/* ===== CALENDAR SECTION ===== */}
-              <View style={styles.calendarSection}>
-                <View style={styles.calendarHeader}>
-                  <TouchableOpacity onPress={() => changeMonth(-1)}>
-                    <Ionicons name="chevron-back" size={20} color="#2C160E" />
-                  </TouchableOpacity>
-                  <Text style={styles.calendarTitle}>
-                    {months[currentMonth]} {currentYear}
-                  </Text>
-                  <TouchableOpacity onPress={() => changeMonth(1)}>
-                    <Ionicons name="chevron-forward" size={20} color="#2C160E" />
-                  </TouchableOpacity>
-                </View>
-
-                {/* Calendar Grid */}
-                <View style={styles.calendarGrid}>
-                  {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => (
-                    <View key={day} style={styles.calendarDayHeader}>
-                      <Text style={styles.calendarDayHeaderText}>{day}</Text>
-                    </View>
-                  ))}
-                  {renderCalendar()}
-                </View>
-
-                <View style={styles.calendarLegend}>
-                  <View style={styles.legendItem}>
-                    <View style={[styles.legendDot, styles.legendGood]} />
-                    <Text style={styles.legendText}>Good Planting Day</Text>
-                  </View>
-                  <View style={styles.legendItem}>
-                    <View style={[styles.legendDot, styles.legendToday]} />
-                    <Text style={styles.legendText}>Today</Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* ===== FERTILIZER TIPS ===== */}
-              <View style={styles.sectionContainer}>
-                <View style={styles.sectionHeader}>
-                  <Ionicons name="flask-outline" size={22} color="#0D631B" />
-                  <Text style={styles.sectionTitle}>Fertilizer Application Tips</Text>
-                </View>
-                {fertilizerTips.map((tip) => (
-                  <View key={tip.id} style={styles.tipCard}>
-                    <Text style={styles.tipTitle}>{tip.title}</Text>
-                    <Text style={styles.tipDescription}>{tip.description}</Text>
-                    <View style={styles.tipTiming}>
-                      <Ionicons name="time-outline" size={14} color="#F59E0B" />
-                      <Text style={styles.tipTimingText}>{tip.timing}</Text>
-                    </View>
-                  </View>
-                ))}
-              </View>
-
-              {/* ===== ROOT CROP CARE TIPS ===== */}
-              <View style={styles.sectionContainer}>
-                <View style={styles.sectionHeader}>
-                  <Ionicons name="leaf-outline" size={22} color="#0D631B" />
-                  <Text style={styles.sectionTitle}>Root Crop Care Guide</Text>
-                </View>
-                <View style={styles.careGrid}>
-                  {cropCareTips.map((tip) => (
-                    <View key={tip.id} style={styles.careCard}>
-                      <Text style={styles.careIcon}>{tip.icon}</Text>
-                      <Text style={styles.careTitle}>{tip.title}</Text>
-                      <Text style={styles.careDescription}>{tip.description}</Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-
-              {/* Weather Alerts */}
-              <View style={styles.sectionContainer}>
-                <View style={styles.sectionHeader}>
-                  <Ionicons name="warning-outline" size={22} color="#F97316" />
-                  <Text style={styles.sectionTitle}>Weather Alerts</Text>
-                </View>
-                {weatherAlerts.map((alert) => (
-                  <View key={alert.id} style={styles.alertItem}>
-                    <View style={styles.alertIconContainer}>
-                      <Ionicons name={alert.icon === 'rainy' ? 'rainy-outline' : 'sunny-outline'} size={24} color="#0D631B" />
-                    </View>
-                    <View style={styles.alertContent}>
-                      <Text style={styles.alertTitle}>{alert.title}</Text>
-                      <Text style={styles.alertDescription}>{alert.description}</Text>
-                      <View style={styles.alertTime}>
-                        <Ionicons name="time-outline" size={14} color="#707A6C" />
-                        <Text style={styles.alertTimeText}>{alert.time}</Text>
-                      </View>
-                    </View>
-                  </View>
-                ))}
-              </View>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-    );
-  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -591,41 +499,31 @@ const HomeScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Health Card */}
-        <View style={styles.healthCard}>
-          <View style={styles.healthHeader}>
-            <Text style={styles.healthTitle}>Overall Health</Text>
-            <Text 
-              style={[
-                styles.healthStatus, 
-                { color: getStatusColor(healthData.percentage) }
-              ]}
-            >
-              {healthData.percentage}% {getStatusText(healthData.percentage)}
-            </Text>
-          </View>
-          <View style={styles.healthContent}>
-            <ProgressCircle 
-              percentage={healthData.percentage} 
-              size={80} 
-              strokeWidth={6}
-            />
-            <View style={styles.healthStats}>
-              <View style={styles.healthStatItem}>
-                <Text style={styles.healthStatLabel}>Total Fields</Text>
-                <Text style={styles.healthStatValue}>{healthData.fields} Fields</Text>
-              </View>
-              <View style={styles.healthStatItem}>
-                <Text style={styles.healthStatLabel}>Area Coverage</Text>
-                <Text style={styles.healthStatValue}>{healthData.area} Acres</Text>
-              </View>
-              <View style={styles.healthStatItem}>
-                <Text style={styles.healthStatLabel}>Biological Risk</Text>
-                <Text style={[styles.healthStatValue, styles.healthStatLow]}>
-                  {healthData.risk}
-                </Text>
-              </View>
+        {/* Scan Streak Tracker */}
+        <View style={styles.streakCard}>
+          <View style={styles.streakHeader}>
+            <View style={styles.streakIconContainer}>
+              <Ionicons name="flame" size={26} color="#F59E0B" />
             </View>
+            <View style={styles.streakTextContainer}>
+              <Text style={styles.streakCount}>{streakData.count}-Day Streak</Text>
+              <Text style={styles.streakMessage}>
+                You've scanned your crops {streakData.count} days in a row!
+              </Text>
+            </View>
+          </View>
+          <View style={styles.streakDaysRow}>
+            {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, index) => {
+              const isDone = streakData.scannedToday[index];
+              return (
+                <View key={index} style={styles.streakDayItem}>
+                  <View style={[styles.streakDayDot, isDone && styles.streakDayDotActive]}>
+                    {isDone && <Ionicons name="checkmark" size={12} color="#FFFFFF" />}
+                  </View>
+                  <Text style={styles.streakDayLabel}>{day}</Text>
+                </View>
+              );
+            })}
           </View>
         </View>
 
@@ -663,7 +561,10 @@ const HomeScreen = ({ navigation }) => {
       </ScrollView>
 
       {/* Weather Alert Modal */}
-      <WeatherAlertModal />
+      <WeatherAlertModal
+        visible={weatherModalVisible}
+        onClose={() => setWeatherModalVisible(false)}
+      />
     </SafeAreaView>
   );
 };
@@ -943,8 +844,8 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: 'rgba(255, 255, 255, 0.85)',
   },
-  // ========== HEALTH CARD ==========
-  healthCard: {
+  // ========== SCAN STREAK TRACKER ==========
+  streakCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 18,
@@ -955,90 +856,61 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  healthHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 14,
-  },
-  healthTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#2C160E',
-  },
-  healthStatus: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  healthContent: {
+  streakHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    gap: 12,
+    marginBottom: 16,
   },
-  healthRing: {
+  streakIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'relative',
   },
-  healthRingBackground: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  ringTrack: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    borderStyle: 'solid',
-  },
-  ringHalf: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    borderStyle: 'solid',
-  },
-  ringLeft: {
-    borderRightColor: 'transparent',
-  },
-  ringRight: {
-    borderLeftColor: 'transparent',
-    transform: [{ rotate: '0deg' }],
-  },
-  healthRingCenter: {
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  healthRingText: {
-    fontWeight: '700',
-    color: '#0D631B',
-  },
-  healthStats: {
+  streakTextContainer: {
     flex: 1,
-    gap: 6,
   },
-  healthStatItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  streakCount: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#2C160E',
+    marginBottom: 2,
   },
-  healthStatLabel: {
+  streakMessage: {
     fontSize: 12,
     fontWeight: '400',
     color: '#40493D',
+    lineHeight: 16,
   },
-  healthStatValue: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#2C160E',
+  streakDaysRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(191, 202, 186, 0.3)',
   },
-  healthStatLow: {
-    color: '#0D631B',
+  streakDayItem: {
+    alignItems: 'center',
+    gap: 6,
+  },
+  streakDayDot: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#F1EDE9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  streakDayDotActive: {
+    backgroundColor: '#F59E0B',
+  },
+  streakDayLabel: {
+    fontSize: 10,
+    fontWeight: '500',
+    color: '#707A6C',
   },
   // ========== ACTIVITY SECTION ==========
   activitySection: {

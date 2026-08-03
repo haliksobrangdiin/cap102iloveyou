@@ -19,18 +19,28 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { useFocusEffect } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 
 const { width } = Dimensions.get('window');
 const SIDEBAR_WIDTH = Math.min(340, width * 0.85);
-// CustomTabBar's raised center button uses marginTop: -32 to float above the
-// bar's own container, so useBottomTabBarHeight() alone under-reports how
-// much space is actually visually occupied at the bottom of the screen.
-const RAISED_BUTTON_OVERFLOW = 32;
+
+// Walk up the navigation tree until we find the nearest Tab Navigator.
+const findTabNavigator = (navigation) => {
+  // First, check if the current navigation itself IS a Tab Navigator
+  if (navigation.getState()?.type === 'tab') {
+    return navigation;
+  }
+  
+  let nav = navigation.getParent();
+  while (nav && nav.getState()?.type !== 'tab') {
+    nav = nav.getParent();
+  }
+  return nav;
+};
 
 const ChatbotScreen = ({ navigation }) => {
-  const tabBarHeight = useBottomTabBarHeight();
   const [messages, setMessages] = useState([
     { id: '1', text: 'Hello! How can I help you with your root crop farming today?', sender: 'bot' },
   ]);
@@ -60,12 +70,23 @@ const ChatbotScreen = ({ navigation }) => {
   const flatListRef = useRef(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
-  // Manual keyboard tracking instead of KeyboardAvoidingView.
-  // KeyboardAvoidingView has known layout bugs under React Native's New
-  // Architecture (Fabric, on by default in Expo SDK 54) combined with
-  // react-native-screens - it can collapse content instead of resizing.
-  // Tracking keyboard height directly and applying it as a normal
-  // marginBottom avoids that broken component entirely.
+  // Hide the bottom tab bar while this screen is focused
+  useFocusEffect(
+    React.useCallback(() => {
+      const tabNavigator = findTabNavigator(navigation);
+      if (tabNavigator) {
+        tabNavigator.setOptions({ tabBarStyle: { display: 'none' } });
+      }
+      return () => {
+        const tn = findTabNavigator(navigation);
+        if (tn) {
+          tn.setOptions({ tabBarStyle: { display: 'flex' } });
+        }
+      };
+    }, [navigation])
+  );
+
+  // Keyboard tracking
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
@@ -172,7 +193,7 @@ const ChatbotScreen = ({ navigation }) => {
     if (!result.canceled) {
       setAttachments([...attachments, { id: Date.now().toString(), uri: result.assets[0].uri, type: 'image' }]);
       setShowAttachmentMenu(false);
-      Alert.alert('✅ Uploaded', 'Crop image attached successfully! Our experts can now analyze your crop.');
+      Alert.alert('OK Uploaded', 'Crop image attached successfully! Our experts can now analyze your crop.');
     }
   };
 
@@ -191,7 +212,7 @@ const ChatbotScreen = ({ navigation }) => {
     if (!result.canceled) {
       setAttachments([...attachments, { id: Date.now().toString(), uri: result.assets[0].uri, type: 'image' }]);
       setShowAttachmentMenu(false);
-      Alert.alert('✅ Captured', 'Crop photo captured successfully! Our team can now assess your crop health.');
+      Alert.alert('OK Captured', 'Crop photo captured successfully! Our team can now assess your crop health.');
     }
   };
 
@@ -234,7 +255,6 @@ const ChatbotScreen = ({ navigation }) => {
       style={styles.historyItem}
       onPress={() => {
         closeHistory();
-        // Load conversation logic here
       }}
       activeOpacity={0.7}
     >
@@ -261,24 +281,33 @@ const ChatbotScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header with menu */}
+      {/* Header with back button + menu */}
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.menuButton}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            openHistory();
-          }}
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.navigate('Home')}
+          activeOpacity={0.7}
         >
-          <Ionicons name="menu-outline" size={24} color="#0D631B" />
+          <Ionicons name="chevron-back" size={24} color="#0D631B" />
         </TouchableOpacity>
         <Text style={styles.headerText}>RootCare Companion</Text>
-        <TouchableOpacity 
-          style={styles.newChatButton}
-          onPress={handleNewChat}
-        >
-          <Ionicons name="create-outline" size={22} color="#0D631B" />
-        </TouchableOpacity>
+        <View style={styles.headerRightActions}>
+          <TouchableOpacity 
+            style={styles.menuButton}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              openHistory();
+            }}
+          >
+            <Ionicons name="menu-outline" size={22} color="#0D631B" />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.newChatButton}
+            onPress={handleNewChat}
+          >
+            <Ionicons name="create-outline" size={22} color="#0D631B" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.chatArea}>
@@ -287,7 +316,7 @@ const ChatbotScreen = ({ navigation }) => {
           data={messages}
           renderItem={renderMessage}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={[styles.messagesList, { paddingBottom: 20 + tabBarHeight + RAISED_BUTTON_OVERFLOW }]}
+          contentContainerStyle={[styles.messagesList]}
           showsVerticalScrollIndicator={false}
           onContentSizeChange={() => {
             flatListRef.current?.scrollToEnd({ animated: true });
@@ -322,8 +351,8 @@ const ChatbotScreen = ({ navigation }) => {
           </View>
         )}
 
-        {/* Input area - offset above the floating tab bar, or above the keyboard when open */}
-        <View style={[styles.inputContainer, { marginBottom: keyboardHeight > 0 ? keyboardHeight : tabBarHeight + RAISED_BUTTON_OVERFLOW + 16 }]}>
+        {/* Input area - Fixed positioning */}
+        <View style={[styles.inputContainer, { marginBottom: keyboardHeight > 0 ? keyboardHeight : 16 }]}>
           <TouchableOpacity 
             style={styles.attachButton}
             onPress={() => {
@@ -458,8 +487,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(191, 202, 186, 0.3)',
   },
+  backButton: {
+    padding: 4,
+  },
   menuButton: {
     padding: 4,
+  },
+  headerRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
   },
   headerText: {
     fontSize: 18,
@@ -562,7 +599,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     padding: 12,
-    paddingBottom: Platform.OS === 'ios' ? 20 : 12,
+    paddingBottom: 20,
     backgroundColor: '#FFF8F6',
     borderTopWidth: 1,
     borderTopColor: 'rgba(191, 202, 186, 0.3)',
@@ -578,12 +615,11 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 44,
     borderWidth: 1,
-    borderColor: 'rgba(122, 86, 73, 0.3)', // Soil Brown at 30% opacity, per design system
+    borderColor: 'rgba(122, 86, 73, 0.3)',
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 14,
     maxHeight: 140,
-    fontFamily: 'Open Sans',
     fontSize: 15,
     lineHeight: 20,
     color: '#2C160E',
@@ -591,7 +627,7 @@ const styles = StyleSheet.create({
   },
   inputFocused: {
     borderWidth: 2,
-    borderColor: '#0D631B', // Forest Green — border thickens + transitions on focus
+    borderColor: '#0D631B',
   },
   sendButton: {
     backgroundColor: '#0D631B',

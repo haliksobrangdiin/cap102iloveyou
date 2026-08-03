@@ -113,7 +113,7 @@ const SettingsScreen = ({ navigation }) => {
       style={[styles.container, { backgroundColor: themeColors.background }]}
       edges={['top']}
     >
-      {/* ===== REDESIGNED HEADER ===== */}
+      {/* ===== HEADER WITH SEARCH REMOVED ===== */}
       <View style={[styles.header, { backgroundColor: themeColors.background }]}>
         <TouchableOpacity
           style={styles.backButton}
@@ -125,9 +125,7 @@ const SettingsScreen = ({ navigation }) => {
         <Text style={[styles.headerText, { color: themeColors.text }]}>
           Settings
         </Text>
-        <TouchableOpacity style={styles.headerAction} activeOpacity={0.7}>
-          <Ionicons name="search-outline" size={24} color={themeColors.text} />
-        </TouchableOpacity>
+        <View style={styles.headerSpacer} />
       </View>
 
       <ScrollView
@@ -494,7 +492,7 @@ const styles = StyleSheet.create({
     flex: 1,
     ...(Platform.OS === 'web' ? { height: '100vh', overflow: 'hidden' } : {}),
   },
-  // ===== REDESIGNED HEADER STYLES =====
+  // ===== HEADER STYLES =====
   header: {
     width: '100%',
     minHeight: 56,
@@ -517,10 +515,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     letterSpacing: 0.3,
   },
-  headerAction: {
-    padding: 4,
+  headerSpacer: {
     minWidth: 40,
-    alignItems: 'flex-end',
   },
   scrollContent: {
     padding: 16,
