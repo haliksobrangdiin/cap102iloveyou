@@ -95,9 +95,6 @@ const OnboardingScreen = ({ onFinish }) => {
       return 'Next';
     };
 
-    // Only the very first slide (the transparent logo intro) stays plain -
-    // every other slide, including the last one, now gets the white card
-    // treatment with a fully-covering image (no letterboxed whitespace).
     const showWhitePlate = !isFirstSlide;
 
     return (
@@ -254,9 +251,8 @@ const OnboardingScreen = ({ onFinish }) => {
             </View>
 
             <View style={styles.splashLoadingLabel}>
-              <View style={styles.splashLoadingDot} />
-              <Text style={styles.splashLoadingText}>INITIALIZING FIELD DATA</Text>
-              <View style={styles.splashLoadingDot} />
+        
+              <Text style={styles.splashLoadingText}>Initializing Field Data</Text>
             </View>
           </View>
         </View>

@@ -14,6 +14,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
+// RootCare Design System tokens - aligned with the exact palette roles used
+// in OnboardingScreen: '#0D631B' is the brand/heading green (splash title,
+// calendar "today" accent elsewhere), while '#2E7D32' is the action/button
+// green (the "Get Started" button). Keeping those roles consistent here so
+// Settings reads as the same app as onboarding, not a different palette.
 const colors = {
   surface: '#FFF8F6',
   'surface-dim': '#FBD1C4',
@@ -94,6 +99,11 @@ const SettingsScreen = ({ navigation }) => {
     );
   };
 
+  // accent = brand/heading green, matches the OnboardingScreen splash title
+  // and dot indicators ('#0D631B').
+  // primary = action/button green, matches the OnboardingScreen
+  // "Get Started" button ('#2E7D32'). Interactive elements (selected chips,
+  // badges) use `primary`; headings/section titles use `accent`.
   const themeColors = {
     background: isDarkMode ? '#1A1A1A' : colors.surface,
     surface: isDarkMode ? '#2C2C2C' : colors['surface-container-lowest'],
@@ -101,8 +111,8 @@ const SettingsScreen = ({ navigation }) => {
     surfaceTertiary: isDarkMode ? '#4A4A4A' : colors['surface-container'],
     text: isDarkMode ? '#FFFFFF' : colors['on-surface'],
     textSecondary: isDarkMode ? '#B0B0B0' : colors['on-surface-variant'],
-    primary: isDarkMode ? colors['primary-fixed-dim'] : colors.primary,
-    primaryContainer: isDarkMode ? colors['primary-fixed-dim'] : colors['primary-container'],
+    accent: isDarkMode ? colors['primary-fixed-dim'] : colors.primary,
+    primary: isDarkMode ? colors['primary-fixed-dim'] : colors['primary-container'],
     border: isDarkMode ? '#444444' : colors['outline-variant'],
     card: isDarkMode ? '#2C2C2C' : colors['surface-container-lowest'],
     error: colors.error,
@@ -145,7 +155,7 @@ const SettingsScreen = ({ navigation }) => {
             },
           ]}
         >
-          <View style={styles.profileAvatar}>
+          <View style={[styles.profileAvatar, { backgroundColor: themeColors.accent }]}>
             <Text style={styles.profileInitial}>A</Text>
           </View>
           <View style={styles.profileInfo}>
@@ -178,7 +188,7 @@ const SettingsScreen = ({ navigation }) => {
             },
           ]}
         >
-          <Text style={[styles.sectionTitle, { color: themeColors.primary }]}>
+          <Text style={[styles.sectionTitle, { color: themeColors.accent }]}>
             Account
           </Text>
 
@@ -251,7 +261,7 @@ const SettingsScreen = ({ navigation }) => {
             },
           ]}
         >
-          <Text style={[styles.sectionTitle, { color: themeColors.primary }]}>
+          <Text style={[styles.sectionTitle, { color: themeColors.accent }]}>
             Preferences
           </Text>
 
@@ -302,7 +312,7 @@ const SettingsScreen = ({ navigation }) => {
             },
           ]}
         >
-          <Text style={[styles.sectionTitle, { color: themeColors.primary }]}>
+          <Text style={[styles.sectionTitle, { color: themeColors.accent }]}>
             Appearance
           </Text>
 
@@ -334,7 +344,7 @@ const SettingsScreen = ({ navigation }) => {
             },
           ]}
         >
-          <Text style={[styles.sectionTitle, { color: themeColors.primary }]}>
+          <Text style={[styles.sectionTitle, { color: themeColors.accent }]}>
             Notifications
           </Text>
 
@@ -404,7 +414,7 @@ const SettingsScreen = ({ navigation }) => {
             },
           ]}
         >
-          <Text style={[styles.sectionTitle, { color: themeColors.primary }]}>
+          <Text style={[styles.sectionTitle, { color: themeColors.accent }]}>
             Support & Info
           </Text>
 
@@ -539,7 +549,6 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#0D631B',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
