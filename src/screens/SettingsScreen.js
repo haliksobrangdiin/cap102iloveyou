@@ -9,6 +9,7 @@ import {
   ScrollView,
   Alert,
   Switch,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -61,6 +62,13 @@ const SettingsScreen = ({ navigation }) => {
   const [weatherAlerts, setWeatherAlerts] = useState(true);
   const [marketUpdates, setMarketUpdates] = useState(false);
 
+  // Styled confirm modal replacing the native Alert.alert('Exit App', ...).
+  // Same rounded-card + icon-circle shape as the Result/History screens'
+  // confirm modals, but tinted with the error color since exiting/logging
+  // out is the destructive action here (matches how the "Log Out" button
+  // below is already styled in error red).
+  const [exitConfirmVisible, setExitConfirmVisible] = useState(false);
+
   const languages = ['English', 'Français', 'Yoruba'];
 
   const handleLanguageSelect = (language) => {
@@ -75,28 +83,21 @@ const SettingsScreen = ({ navigation }) => {
 
   const handleExit = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Alert.alert(
-      'Exit App',
-      'Are you sure you want to exit RootCare?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-          onPress: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light),
-        },
-        {
-          text: 'Exit',
-          style: 'destructive',
-          onPress: () => {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'Onboarding' }],
-            });
-          },
-        },
-      ]
-    );
+    setExitConfirmVisible(true);
+  };
+
+  const cancelExit = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setExitConfirmVisible(false);
+  };
+
+  const confirmExit = () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setExitConfirmVisible(false);
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Onboarding' }],
+    });
   };
 
   // accent = brand/heading green, matches the OnboardingScreen splash title
@@ -493,6 +494,56 @@ const SettingsScreen = ({ navigation }) => {
           RootCare Version 2.4.1 (Stable)
         </Text>
       </ScrollView>
+
+      {/* ===== EXIT CONFIRM MODAL =====
+          Same rounded-card + icon-circle shape as the Result/History
+          confirm modals, tinted in error red since exiting is destructive. */}
+      <Modal
+        visible={exitConfirmVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={cancelExit}
+      >
+        <View style={styles.modalOverlay}>
+          <View
+            style={[
+              styles.confirmModalCard,
+              { backgroundColor: themeColors.surface },
+            ]}
+          >
+            <View style={styles.exitIconCircle}>
+              <Ionicons name="log-out-outline" size={30} color={colors.error} />
+            </View>
+
+            <Text style={[styles.confirmModalTitle, { color: themeColors.text }]}>
+              Exit App
+            </Text>
+            <Text
+              style={[styles.confirmModalBody, { color: themeColors.textSecondary }]}
+            >
+              Are you sure you want to exit RootCare?
+            </Text>
+
+            <TouchableOpacity
+              style={styles.exitConfirmButton}
+              onPress={confirmExit}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.exitConfirmButtonText}>Exit</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.confirmCancelButton}
+              onPress={cancelExit}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.confirmCancelText, { color: themeColors.textSecondary }]}>
+                Cancel
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -676,6 +727,77 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
     marginTop: 8,
+  },
+  // ===== EXIT CONFIRM MODAL =====
+  // Same card shape/proportions as the Result/History confirm & success
+  // modals: rounded-24 card, centered icon circle, title, body, full-width
+  // pill action button, plain-text cancel underneath.
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(44, 22, 14, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  confirmModalCard: {
+    width: '100%',
+    maxWidth: 340,
+    borderRadius: 24,
+    padding: 32,
+    alignItems: 'center',
+    shadowColor: 'rgba(93, 64, 55, 0.15)',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 1,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  exitIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors['error-container'],
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  confirmModalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  confirmModalBody: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  exitConfirmButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.error,
+    borderRadius: 999,
+    width: '100%',
+    minHeight: 48,
+    paddingHorizontal: 12,
+  },
+  exitConfirmButtonText: {
+    color: colors['on-error'],
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  confirmCancelButton: {
+    minHeight: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 4,
+    marginTop: 4,
+    width: '100%',
+  },
+  confirmCancelText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
 

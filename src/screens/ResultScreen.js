@@ -9,7 +9,6 @@ import {
   ScrollView,
   Modal,
   Platform,
-  Alert,
   Dimensions,
   BackHandler,
 } from 'react-native';
@@ -69,6 +68,7 @@ const ResultScreen = ({ route, navigation }) => {
   const { imageUri, scanDate } = route.params || {};
   const [isSaved, setIsSaved] = useState(false);
   const [confirmVisible, setConfirmVisible] = useState(false);
+  const [savedModalVisible, setSavedModalVisible] = useState(false);
 
   // Use refs to store pending action and to track mounted state
   const pendingActionRef = useRef(null);
@@ -137,7 +137,7 @@ const ResultScreen = ({ route, navigation }) => {
   const saveResult = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setIsSaved(true);
-    Alert.alert('✅ Saved', 'Scan result has been saved to history.');
+    setSavedModalVisible(true);
   };
 
   // Show modal function - uses refs to avoid state update during render
@@ -389,6 +389,37 @@ const ResultScreen = ({ route, navigation }) => {
           </View>
         </View>
       </Modal>
+
+      {/* Custom "Saved" confirmation modal - replaces the native Alert.alert
+          so it can actually be styled with the app's colors/typography. */}
+      <Modal
+        visible={savedModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSavedModalVisible(false)}
+        statusBarTranslucent={true}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.savedModalCard}>
+            <View style={styles.savedIconCircle}>
+              <Ionicons name="checkmark" size={32} color={colors.onPrimary} />
+            </View>
+
+            <Text style={styles.savedModalTitle}>Saved!</Text>
+            <Text style={styles.savedModalBody}>
+              Scan result has been saved to history.
+            </Text>
+
+            <TouchableOpacity
+              style={styles.savedModalButton}
+              onPress={() => setSavedModalVisible(false)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.buttonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -630,6 +661,55 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.outline,
     fontWeight: '500',
+  },
+  // ===== CUSTOM "SAVED" MODAL =====
+  savedModalCard: {
+    width: '100%',
+    maxWidth: 340,
+    backgroundColor: colors.surface,
+    borderRadius: rounded.xl,
+    padding: spacing.xl,
+    alignItems: 'center',
+    shadowColor: 'rgba(93, 64, 55, 0.15)',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 1,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  savedIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.primaryContainer,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
+  savedModalTitle: {
+    ...typography.headlineSm,
+    fontSize: 20,
+    color: colors.onSurface,
+    marginBottom: spacing.xs,
+    textAlign: 'center',
+  },
+  savedModalBody: {
+    ...typography.bodyMd,
+    fontSize: 14,
+    color: colors.onSurfaceVariant,
+    textAlign: 'center',
+    marginBottom: spacing.lg,
+    lineHeight: 20,
+  },
+  savedModalButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primaryContainer,
+    borderRadius: rounded.full,
+    width: '100%',
+    minHeight: 48,
+    paddingHorizontal: spacing.sm,
+    gap: spacing.xs + 2,
   },
 });
 

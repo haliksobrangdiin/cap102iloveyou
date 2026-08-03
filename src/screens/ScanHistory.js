@@ -222,8 +222,30 @@ const HistoryScreen = ({ navigation }) => {
   const [isExporting, setIsExporting] = useState(false);
   const [noteText, setNoteText] = useState('');
   const [viewMode, setViewMode] = useState('list'); // 'list' | 'detailed'
-  
+
   const [historyData, setHistoryData] = useState(sampleData);
+
+  // ===== Styled confirm modal (replaces Alert.alert confirm dialogs) =====
+  // Used for Archive / Restore, which need a Cancel + destructive-ish
+  // confirm action rather than a plain success notice.
+  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
+  const [confirmConfig, setConfirmConfig] = useState({
+    icon: 'archive-outline',
+    title: '',
+    body: '',
+    confirmLabel: 'Confirm',
+    onConfirm: () => {},
+  });
+
+  // ===== Styled success modal (replaces Alert.alert success notices) =====
+  // Same checkmark-circle design used on the Result screen's "Saved!" modal.
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
+  const [successConfig, setSuccessConfig] = useState({ title: '', body: '' });
+
+  const showSuccess = (title, body) => {
+    setSuccessConfig({ title, body });
+    setSuccessModalVisible(true);
+  };
 
   const diseaseTypes = ['All', 'Viral', 'Fungal', 'Bacterial', 'Pest', 'Healthy'];
 
@@ -264,51 +286,47 @@ const HistoryScreen = ({ navigation }) => {
   };
 
   const handleArchive = (id) => {
-    Alert.alert(
-      'Archive Scan',
-      'Move this scan to archive?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Archive', 
-          style: 'default',
-          onPress: () => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            const newData = historyData.map(item => {
-              if (item.id === id) {
-                return { ...item, isArchived: true, archivedAt: new Date().toISOString() };
-              }
-              return item;
-            });
-            setHistoryData(newData);
+    setConfirmConfig({
+      icon: 'archive-outline',
+      title: 'Archive Scan',
+      body: 'Move this scan to archive? You can restore it anytime from the Archived tab.',
+      confirmLabel: 'Archive',
+      onConfirm: () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        const newData = historyData.map(item => {
+          if (item.id === id) {
+            return { ...item, isArchived: true, archivedAt: new Date().toISOString() };
           }
-        }
-      ]
-    );
+          return item;
+        });
+        setHistoryData(newData);
+        setConfirmModalVisible(false);
+        showSuccess('Archived!', 'This scan has been moved to your archive.');
+      },
+    });
+    setConfirmModalVisible(true);
   };
 
   const handleRestore = (id) => {
-    Alert.alert(
-      'Restore Scan',
-      'Move this scan back to active?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Restore', 
-          style: 'default',
-          onPress: () => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            const newData = historyData.map(item => {
-              if (item.id === id) {
-                return { ...item, isArchived: false, archivedAt: null };
-              }
-              return item;
-            });
-            setHistoryData(newData);
+    setConfirmConfig({
+      icon: 'refresh-outline',
+      title: 'Restore Scan',
+      body: 'Move this scan back to active?',
+      confirmLabel: 'Restore',
+      onConfirm: () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        const newData = historyData.map(item => {
+          if (item.id === id) {
+            return { ...item, isArchived: false, archivedAt: null };
           }
-        }
-      ]
-    );
+          return item;
+        });
+        setHistoryData(newData);
+        setConfirmModalVisible(false);
+        showSuccess('Restored!', 'This scan is back in your active list.');
+      },
+    });
+    setConfirmModalVisible(true);
   };
 
   const handleViewDetails = (item) => {
@@ -340,7 +358,7 @@ const HistoryScreen = ({ navigation }) => {
     setHistoryData(updatedData);
     setSelectedItem({ ...selectedItem, notes: noteText.trim() });
     setNotesModalVisible(false);
-    Alert.alert('OK Note Saved', 'Your note has been added to this scan.');
+    showSuccess('Saved!', 'Your note has been added to this scan.');
   };
 
   const exportReport = async (item) => {
@@ -860,6 +878,77 @@ const HistoryScreen = ({ navigation }) => {
     );
   };
 
+  // ===== Confirm Modal (Archive / Restore) =====
+  // Same rounded.xl card + circular icon shape as the Result screen's
+  // "Saved!" modal, but with a Cancel + action button pair since this one
+  // confirms BEFORE doing something, rather than announcing after the fact.
+  const renderConfirmModal = () => (
+    <Modal
+      visible={confirmModalVisible}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setConfirmModalVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.savedModalCard}>
+          <View style={styles.confirmIconCircle}>
+            <Ionicons name={confirmConfig.icon} size={30} color={colors.secondary} />
+          </View>
+
+          <Text style={styles.savedModalTitle}>{confirmConfig.title}</Text>
+          <Text style={styles.savedModalBody}>{confirmConfig.body}</Text>
+
+          <TouchableOpacity
+            style={styles.savedModalButton}
+            onPress={confirmConfig.onConfirm}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.savedModalButtonText}>{confirmConfig.confirmLabel}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.confirmCancelButton}
+            onPress={() => setConfirmModalVisible(false)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.confirmCancelText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  // ===== Success Modal (Saved / Archived / Restored) =====
+  // Directly mirrors the Result screen's "Saved!" modal design: green
+  // checkmark circle, title, body, single full-width OK button.
+  const renderSuccessModal = () => (
+    <Modal
+      visible={successModalVisible}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setSuccessModalVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.savedModalCard}>
+          <View style={styles.savedIconCircle}>
+            <Ionicons name="checkmark" size={32} color={colors['on-primary']} />
+          </View>
+
+          <Text style={styles.savedModalTitle}>{successConfig.title}</Text>
+          <Text style={styles.savedModalBody}>{successConfig.body}</Text>
+
+          <TouchableOpacity
+            style={styles.savedModalButton}
+            onPress={() => setSuccessModalVisible(false)}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.savedModalButtonText}>OK</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Simplified Header */}
@@ -960,6 +1049,8 @@ const HistoryScreen = ({ navigation }) => {
       {renderFilterModal()}
       {renderDetailModal()}
       {renderNotesModal()}
+      {renderConfirmModal()}
+      {renderSuccessModal()}
     </SafeAreaView>
   );
 };
@@ -1594,6 +1685,81 @@ const styles = StyleSheet.create({
   notesSaveText: {
     color: colors['on-primary'],
     fontWeight: '600',
+  },
+  // ===== Saved / Confirm Modal (shared card shape) =====
+  savedModalCard: {
+    width: '100%',
+    maxWidth: 340,
+    backgroundColor: colors.surface,
+    borderRadius: rounded.xl,
+    padding: spacing.xl,
+    alignItems: 'center',
+    shadowColor: 'rgba(93, 64, 55, 0.15)',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 1,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  savedIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors['primary-container'],
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
+  confirmIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors['surface-container-high'],
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
+  savedModalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors['on-surface'],
+    marginBottom: spacing.xs,
+    textAlign: 'center',
+  },
+  savedModalBody: {
+    fontSize: 14,
+    color: colors['on-surface-variant'],
+    textAlign: 'center',
+    marginBottom: spacing.lg,
+    lineHeight: 20,
+  },
+  savedModalButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors['primary-container'],
+    borderRadius: rounded.full,
+    width: '100%',
+    minHeight: 48,
+    paddingHorizontal: spacing.sm,
+    gap: spacing.xs + 2,
+  },
+  savedModalButtonText: {
+    color: colors['on-primary'],
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  confirmCancelButton: {
+    minHeight: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xs,
+    marginTop: spacing.xs,
+    width: '100%',
+  },
+  confirmCancelText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.outline,
   },
 });
 
