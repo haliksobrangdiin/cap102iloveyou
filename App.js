@@ -1,23 +1,32 @@
 ﻿// App.js
-import 'react-native-gesture-handler';
-import React, { useState } from 'react';
+import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
 import Toast from 'react-native-toast-message';
 import OnboardingScreen from './src/screens/OnboardingScreen';
+import LoginScreen from './src/screens/LoginScreen';
+import RegisterScreen from './src/screens/RegisterScreen';
 import MainTabs from './src/navigation/MainTabs';
+import ScannerScreen from './src/screens/ScannerScreen';
+import ResultScreen from './src/screens/ResultScreen';
+
+const Stack = createStackNavigator();
 
 const App = () => {
-  const [isOnboarding, setIsOnboarding] = useState(true);
-
   return (
-    <NavigationContainer>
-      {isOnboarding ? (
-        <OnboardingScreen onFinish={() => setIsOnboarding(false)} />
-      ) : (
-        <MainTabs />
-      )}
+    <>
+      <NavigationContainer>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Register" component={RegisterScreen} />
+          <Stack.Screen name="MainTabs" component={MainTabs} />
+          <Stack.Screen name="Scanner" component={ScannerScreen} />
+          <Stack.Screen name="Result" component={ResultScreen} />
+        </Stack.Navigator>
+      </NavigationContainer>
       <Toast />
-    </NavigationContainer>
+    </>
   );
 };
 

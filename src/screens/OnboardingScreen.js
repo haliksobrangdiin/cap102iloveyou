@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
 
-const OnboardingScreen = ({ onFinish }) => {
+const OnboardingScreen = ({ navigation }) => {
   const [showSplash, setShowSplash] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef(null);
@@ -81,7 +81,7 @@ const OnboardingScreen = ({ onFinish }) => {
       });
       setCurrentIndex(currentIndex + 1);
     } else {
-      onFinish?.();
+      navigation.replace('Login');
     }
   };
 
@@ -251,7 +251,6 @@ const OnboardingScreen = ({ onFinish }) => {
             </View>
 
             <View style={styles.splashLoadingLabel}>
-        
               <Text style={styles.splashLoadingText}>Initializing Field Data</Text>
             </View>
           </View>
