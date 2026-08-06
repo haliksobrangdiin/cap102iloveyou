@@ -1,4 +1,4 @@
-﻿// screens/ScannerScreen.js
+﻿// screens/ScannerScreen.js - UI Only (No TFLite)
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
@@ -8,70 +8,25 @@ import {
   StyleSheet,
   Platform,
   Animated,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import * as ImageManipulator from 'expo-image-manipulator';
 import * as Haptics from 'expo-haptics';
 import Toast from 'react-native-toast-message';
-import { runModel, loadModel } from 'react-native-fast-tflite';
-
-// ===== MODEL CONSTANTS =====
-const IMAGE_SIZE = 224; // Your model expects 224x224 input
-const MODEL_PATH = 'rootcare_cassava_model.tflite'; // Path relative to assets folder
-
-// 5 Classes based on your model
-const CLASSES = [
-  'Cassava Bacterial Blight (CBB)',
-  'Cassava Brown Streak Disease (CBSD)',
-  'Cassava Green Mottle (CGM)',
-  'Cassava Mosaic Disease (CMD)',
-  'Healthy',
-];
-
-// Keys for ResultScreen matching DISEASE_INFO
-const CLASS_KEYS = ['CBB', 'CBSD', 'CGM', 'CMD', 'HEALTHY'];
 
 const ScannerScreen = ({ navigation }) => {
   const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [isModelReady, setIsModelReady] = useState(false);
-  
+
   // Animation values
   const scanLineAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
-  // ===== LOAD THE MODEL =====
   useEffect(() => {
-    loadModel();
     startScanLineAnimation();
     startPulseAnimation();
   }, []);
-
-  const loadModel = async () => {
-    try {
-      // Load the .tflite model from assets
-      await loadModel(MODEL_PATH);
-      setIsModelReady(true);
-      
-      Toast.show({
-        type: 'success',
-        text1: 'Model Loaded ✅',
-        text2: 'AI model is ready for analysis!',
-        visibilityTime: 2000,
-      });
-    } catch (error) {
-      console.error('Error loading model:', error);
-      Toast.show({
-        type: 'error',
-        text1: 'Model Error',
-        text2: 'Failed to load AI model. Please restart the app.',
-        visibilityTime: 3000,
-      });
-    }
-  };
 
   const startScanLineAnimation = () => {
     Animated.loop(
@@ -107,39 +62,7 @@ const ScannerScreen = ({ navigation }) => {
     ).start();
   };
 
-  // ===== PREPROCESS IMAGE FOR THE MODEL =====
-  const preprocessImage = async (imageUri) => {
-    try {
-      // Resize to 224x224 (model's expected input)
-      const manipulatedImage = await ImageManipulator.manipulateAsync(
-        imageUri,
-        [
-          { resize: { width: IMAGE_SIZE, height: IMAGE_SIZE } },
-        ],
-        { format: ImageManipulator.SaveFormat.JPEG, compress: 0.9 }
-      );
-
-      // Read the image as base64
-      const response = await fetch(manipulatedImage.uri);
-      const blob = await response.blob();
-      
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          // Get base64 data without the data:image/jpeg;base64, prefix
-          const base64 = reader.result.split(',')[1];
-          resolve(base64);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-    } catch (error) {
-      console.error('Error preprocessing image:', error);
-      throw error;
-    }
-  };
-
-  // ===== REAL ANALYZE IMAGE FUNCTION =====
+  // ===== MOCK ANALYSIS (UI Demo Only) =====
   const analyzeImage = async () => {
     if (!image) {
       Toast.show({
@@ -150,66 +73,40 @@ const ScannerScreen = ({ navigation }) => {
       return;
     }
 
-    if (!isModelReady) {
-      Toast.show({
-        type: 'error',
-        text1: 'Model Not Ready',
-        text2: 'Please wait for the AI model to load.',
-      });
-      return;
-    }
-
     setLoading(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    try {
-      // Preprocess the image to base64
-      const base64Image = await preprocessImage(image);
-      
-      // Run inference with the .tflite model
-      // The output is a flat array of probabilities for each class
-      const output = await runModel({
-        path: MODEL_PATH,
-        input: base64Image,
-        inputShape: [1, IMAGE_SIZE, IMAGE_SIZE, 3],
-        outputShape: [1, 5], // 5 classes
-      });
-      
-      // Get probabilities from output
-      const probabilities = Array.isArray(output) ? output : output;
-      
-      // Get the predicted class index
-      const predictedIndex = probabilities.indexOf(Math.max(...probabilities));
-      const confidence = probabilities[predictedIndex];
-
-      // Navigate to Result with the prediction data
+    // Simulate AI analysis with mock data
+    setTimeout(() => {
+      setLoading(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      
+      // Mock prediction - randomly pick a disease for demo
+      const mockResults = [
+        { key: 'CMD', label: 'Cassava Mosaic Disease', confidence: 92 },
+        { key: 'HEALTHY', label: 'Healthy Leaf', confidence: 97 },
+        { key: 'CBB', label: 'Cassava Bacterial Blight', confidence: 88 },
+        { key: 'CBSD', label: 'Cassava Brown Streak Disease', confidence: 85 },
+        { key: 'CGM', label: 'Cassava Green Mottle', confidence: 90 },
+      ];
+      
+      const randomResult = mockResults[Math.floor(Math.random() * mockResults.length)];
+
       Toast.show({
         type: 'success',
         text1: 'Analysis Complete ✅',
-        text2: `${CLASSES[predictedIndex]} (${Math.round(confidence * 100)}%)`,
+        text2: `${randomResult.label} (${randomResult.confidence}%)`,
         visibilityTime: 2500,
       });
 
       navigation.navigate('Result', {
         imageUri: image,
-        diseaseKey: CLASS_KEYS[predictedIndex],
-        diseaseLabel: CLASSES[predictedIndex],
-        confidence: Math.round(confidence * 100),
+        diseaseKey: randomResult.key,
+        diseaseLabel: randomResult.label,
+        confidence: randomResult.confidence,
         scanDate: new Date().toISOString(),
       });
-      
-    } catch (error) {
-      console.error('Analysis error:', error);
-      Toast.show({
-        type: 'error',
-        text1: 'Analysis Failed',
-        text2: 'There was an error analyzing the image. Please try again.',
-        visibilityTime: 3000,
-      });
-    } finally {
-      setLoading(false);
-    }
+    }, 2000);
   };
 
   // ===== IMAGE PICKER FUNCTIONS =====
@@ -289,9 +186,6 @@ const ScannerScreen = ({ navigation }) => {
         </TouchableOpacity>
         <Text style={styles.navTitle}>Scan Disease</Text>
         <View style={styles.navRight}>
-          <TouchableOpacity style={styles.navButton}>
-            <Ionicons name="notifications-outline" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
           <View style={styles.profileAvatar}>
             <Image
               source={require('../assets/logo.png')}
@@ -301,18 +195,6 @@ const ScannerScreen = ({ navigation }) => {
           </View>
         </View>
       </View>
-
-      {/* Model Loading Indicator */}
-      {!isModelReady && (
-        <View style={styles.modelLoadingBar}>
-          <View style={styles.loadingDots}>
-            <View style={[styles.dot, styles.dot1]} />
-            <View style={[styles.dot, styles.dot2]} />
-            <View style={[styles.dot, styles.dot3]} />
-          </View>
-          <Text style={styles.modelLoadingText}>Loading AI Model...</Text>
-        </View>
-      )}
 
       {/* Camera View */}
       <View style={styles.cameraContainer}>
@@ -413,7 +295,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
   },
-  // ===== TOP NAVIGATION =====
   topNav: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -457,46 +338,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  // ===== MODEL LOADING BAR =====
-  modelLoadingBar: {
-    position: 'absolute',
-    top: 80,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(46, 125, 50, 0.95)',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 20,
-    gap: 12,
-  },
-  loadingDots: {
-    flexDirection: 'row',
-    gap: 4,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#FFFFFF',
-  },
-  dot1: {
-    opacity: 1,
-  },
-  dot2: {
-    opacity: 0.6,
-  },
-  dot3: {
-    opacity: 0.3,
-  },
-  modelLoadingText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  // ===== CAMERA VIEW =====
   cameraContainer: {
     flex: 1,
     backgroundColor: '#000000',
@@ -532,7 +373,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.3)',
   },
-  // ===== SCAN FRAME =====
   scanFrameContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -614,7 +454,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(136, 217, 130, 0.1)',
     borderRadius: 24,
   },
-  // ===== STATUS =====
   statusContainer: {
     position: 'absolute',
     bottom: 160,
@@ -647,7 +486,6 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.8)',
     textAlign: 'center',
   },
-  // ===== CONTROLS =====
   controlsContainer: {
     position: 'absolute',
     bottom: 40,
@@ -705,7 +543,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
   },
-  // ===== ANALYZE BUTTON =====
   analyzeButton: {
     position: 'absolute',
     bottom: 130,
