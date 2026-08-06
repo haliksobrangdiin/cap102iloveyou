@@ -5,79 +5,83 @@ import {
   Text,
   TouchableOpacity,
   Image,
-  ImageBackground,
   StyleSheet,
   Platform,
-  Alert,
-  Dimensions,
   Animated,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import * as Haptics from 'expo-haptics';
+import Toast from 'react-native-toast-message';
+import { runModel, loadModel } from 'react-native-fast-tflite';
 
-const { width, height } = Dimensions.get('window');
+// ===== MODEL CONSTANTS =====
+const IMAGE_SIZE = 224; // Your model expects 224x224 input
+const MODEL_PATH = 'rootcare_cassava_model.tflite'; // Path relative to assets folder
 
-// RootCare Design System tokens
-const colors = {
-  surface: '#FFF8F6',
-  surfaceContainer: '#FFE9E3',
-  surfaceContainerLow: '#FFF1ED',
-  onSurface: '#2C160E',
-  onSurfaceVariant: '#40493D',
-  primary: '#0D631B',
-  onPrimary: '#FFFFFF',
-  primaryContainer: '#2E7D32',
-  onPrimaryContainer: '#CBFFC2',
-  primaryFixedDim: '#88D982',
-  secondary: '#7A5649',
-  onSecondary: '#FFFFFF',
-  outlineVariant: '#BFCABA',
-  error: '#BA1A1A',
-};
+// 5 Classes based on your model
+const CLASSES = [
+  'Cassava Bacterial Blight (CBB)',
+  'Cassava Brown Streak Disease (CBSD)',
+  'Cassava Green Mottle (CGM)',
+  'Cassava Mosaic Disease (CMD)',
+  'Healthy',
+];
 
-const typography = {
-  headlineSm: { fontFamily: 'Montserrat', fontSize: 20, fontWeight: '600', lineHeight: 28 },
-  headlineMd: { fontFamily: 'Montserrat', fontSize: 24, fontWeight: '600', lineHeight: 32 },
-  bodyMd: { fontFamily: 'Open Sans', fontSize: 16, fontWeight: '400', lineHeight: 24 },
-  bodyLg: { fontFamily: 'Open Sans', fontSize: 18, fontWeight: '400', lineHeight: 28 },
-  labelLg: { fontFamily: 'Open Sans', fontSize: 14, fontWeight: '600', lineHeight: 20, letterSpacing: 0.1 },
-};
-
-const spacing = { xs: 4, sm: 12, md: 16, lg: 24, xl: 32, marginMobile: 20 };
-
-const rounded = { sm: 4, DEFAULT: 8, md: 12, lg: 16, xl: 24, full: 9999 };
-
-const HEADER_HEIGHT = 56;
-const MIN_TOUCH = 48;
-const SCANNER_SIZE = width * 0.75;
-
-// ===== IMPORT YOUR BACKGROUND IMAGE =====
-import backgroundImage from '../assets/screen.png';
-// Option 2: Remote URL
-// const backgroundImage = { uri: 'https://your-image-url.com/screen.png' };
+// Keys for ResultScreen matching DISEASE_INFO
+const CLASS_KEYS = ['CBB', 'CBSD', 'CGM', 'CMD', 'HEALTHY'];
 
 const ScannerScreen = ({ navigation }) => {
   const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [isModelReady, setIsModelReady] = useState(false);
   
-  // Animation for scan line
-  const scanAnim = useRef(new Animated.Value(0)).current;
+  // Animation values
+  const scanLineAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
+  // ===== LOAD THE MODEL =====
   useEffect(() => {
-    startScanAnimation();
+    loadModel();
+    startScanLineAnimation();
+    startPulseAnimation();
   }, []);
 
-  const startScanAnimation = () => {
+  const loadModel = async () => {
+    try {
+      // Load the .tflite model from assets
+      await loadModel(MODEL_PATH);
+      setIsModelReady(true);
+      
+      Toast.show({
+        type: 'success',
+        text1: 'Model Loaded ✅',
+        text2: 'AI model is ready for analysis!',
+        visibilityTime: 2000,
+      });
+    } catch (error) {
+      console.error('Error loading model:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Model Error',
+        text2: 'Failed to load AI model. Please restart the app.',
+        visibilityTime: 3000,
+      });
+    }
+  };
+
+  const startScanLineAnimation = () => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(scanAnim, {
+        Animated.timing(scanLineAnim, {
           toValue: 1,
           duration: 3000,
           useNativeDriver: true,
         }),
-        Animated.timing(scanAnim, {
+        Animated.timing(scanLineAnim, {
           toValue: 0,
           duration: 3000,
           useNativeDriver: true,
@@ -86,15 +90,142 @@ const ScannerScreen = ({ navigation }) => {
     ).start();
   };
 
+  const startPulseAnimation = () => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.05,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 0.95,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  };
+
+  // ===== PREPROCESS IMAGE FOR THE MODEL =====
+  const preprocessImage = async (imageUri) => {
+    try {
+      // Resize to 224x224 (model's expected input)
+      const manipulatedImage = await ImageManipulator.manipulateAsync(
+        imageUri,
+        [
+          { resize: { width: IMAGE_SIZE, height: IMAGE_SIZE } },
+        ],
+        { format: ImageManipulator.SaveFormat.JPEG, compress: 0.9 }
+      );
+
+      // Read the image as base64
+      const response = await fetch(manipulatedImage.uri);
+      const blob = await response.blob();
+      
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          // Get base64 data without the data:image/jpeg;base64, prefix
+          const base64 = reader.result.split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.error('Error preprocessing image:', error);
+      throw error;
+    }
+  };
+
+  // ===== REAL ANALYZE IMAGE FUNCTION =====
+  const analyzeImage = async () => {
+    if (!image) {
+      Toast.show({
+        type: 'error',
+        text1: 'No Image',
+        text2: 'Please take a photo or upload an image first.',
+      });
+      return;
+    }
+
+    if (!isModelReady) {
+      Toast.show({
+        type: 'error',
+        text1: 'Model Not Ready',
+        text2: 'Please wait for the AI model to load.',
+      });
+      return;
+    }
+
+    setLoading(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    try {
+      // Preprocess the image to base64
+      const base64Image = await preprocessImage(image);
+      
+      // Run inference with the .tflite model
+      // The output is a flat array of probabilities for each class
+      const output = await runModel({
+        path: MODEL_PATH,
+        input: base64Image,
+        inputShape: [1, IMAGE_SIZE, IMAGE_SIZE, 3],
+        outputShape: [1, 5], // 5 classes
+      });
+      
+      // Get probabilities from output
+      const probabilities = Array.isArray(output) ? output : output;
+      
+      // Get the predicted class index
+      const predictedIndex = probabilities.indexOf(Math.max(...probabilities));
+      const confidence = probabilities[predictedIndex];
+
+      // Navigate to Result with the prediction data
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Toast.show({
+        type: 'success',
+        text1: 'Analysis Complete ✅',
+        text2: `${CLASSES[predictedIndex]} (${Math.round(confidence * 100)}%)`,
+        visibilityTime: 2500,
+      });
+
+      navigation.navigate('Result', {
+        imageUri: image,
+        diseaseKey: CLASS_KEYS[predictedIndex],
+        diseaseLabel: CLASSES[predictedIndex],
+        confidence: Math.round(confidence * 100),
+        scanDate: new Date().toISOString(),
+      });
+      
+    } catch (error) {
+      console.error('Analysis error:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Analysis Failed',
+        text2: 'There was an error analyzing the image. Please try again.',
+        visibilityTime: 3000,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ===== IMAGE PICKER FUNCTIONS =====
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission Needed', 'Please grant gallery permissions to upload images.');
+      Toast.show({
+        type: 'error',
+        text1: 'Permission Denied',
+        text2: 'Please grant gallery permissions to upload images.',
+      });
       return;
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       quality: 1,
     });
@@ -102,13 +233,23 @@ const ScannerScreen = ({ navigation }) => {
     if (!result.canceled) {
       setImage(result.assets[0].uri);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Toast.show({
+        type: 'success',
+        text1: 'Image Uploaded',
+        text2: 'Your image is ready for analysis!',
+        visibilityTime: 1500,
+      });
     }
   };
 
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission Needed', 'Please grant camera permissions to take photos.');
+      Toast.show({
+        type: 'error',
+        text1: 'Permission Denied',
+        text2: 'Please grant camera permissions to take photos.',
+      });
       return;
     }
 
@@ -120,433 +261,474 @@ const ScannerScreen = ({ navigation }) => {
     if (!result.canceled) {
       setImage(result.assets[0].uri);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Toast.show({
+        type: 'success',
+        text1: 'Photo Captured',
+        text2: 'Your photo is ready for analysis!',
+        visibilityTime: 1500,
+      });
     }
   };
 
-  const removeImage = () => {
-    setImage(null);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  };
-
-  const analyzeImage = async () => {
-    if (!image) {
-      Alert.alert('No Image', 'Please take a photo or upload an image first.');
-      return;
-    }
-
-    setLoading(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-    setTimeout(() => {
-      setLoading(false);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      navigation.navigate('Result', { imageUri: image });
-    }, 2000);
-  };
-
-  // Scan line interpolation
-  const scanLineTranslate = scanAnim.interpolate({
+  // ===== RENDER =====
+  const scanLineTranslate = scanLineAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [-150, 150],
+    outputRange: [10, 90],
   });
 
   return (
-    <ImageBackground
-      source={backgroundImage}
-      style={styles.backgroundImage}
-      resizeMode="cover"
-    >
-      {/* ===== BLACK FADE OVERLAY ===== */}
-      <View style={styles.overlay} />
-      
-      <SafeAreaView style={styles.container} edges={['top']}>
-        {/* ===== HEADER ===== */}
-        <View style={[styles.header, { backgroundColor: 'rgba(255, 248, 246, 0.92)' }]}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="chevron-back" size={28} color={colors.onSurface} />
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Top Navigation */}
+      <View style={styles.topNav}>
+        <TouchableOpacity
+          style={styles.navButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+        <Text style={styles.navTitle}>Scan Disease</Text>
+        <View style={styles.navRight}>
+          <TouchableOpacity style={styles.navButton}>
+            <Ionicons name="notifications-outline" size={24} color="#FFFFFF" />
           </TouchableOpacity>
-          <Text style={[styles.headerText, { color: colors.onSurface }]}>
-            Scan Leaf
-          </Text>
-          <TouchableOpacity style={styles.headerAction} activeOpacity={0.7}>
-            <Ionicons name="information-circle-outline" size={24} color={colors.onSurface} />
-          </TouchableOpacity>
+          <View style={styles.profileAvatar}>
+            <Image
+              source={require('../assets/logo.png')}
+              style={styles.profileImage}
+              resizeMode="cover"
+            />
+          </View>
         </View>
+      </View>
 
-        <View style={styles.content}>
-          {/* Description - with semi-transparent background for readability */}
-          <View style={styles.descriptionWrapper}>
-            <Text style={styles.description}>
-              Take a clear photo or upload an image of the cassava leaf to detect potential diseases using AI.
-            </Text>
+      {/* Model Loading Indicator */}
+      {!isModelReady && (
+        <View style={styles.modelLoadingBar}>
+          <View style={styles.loadingDots}>
+            <View style={[styles.dot, styles.dot1]} />
+            <View style={[styles.dot, styles.dot2]} />
+            <View style={[styles.dot, styles.dot3]} />
           </View>
+          <Text style={styles.modelLoadingText}>Loading AI Model...</Text>
+        </View>
+      )}
 
-          {/* Image Container with Scanner Overlay */}
-          <View style={styles.imageContainer}>
-            {image ? (
-              <>
-                <Image source={{ uri: image }} style={styles.image} />
-                <TouchableOpacity
-                  style={styles.removeButton}
-                  onPress={removeImage}
-                  activeOpacity={0.85}
-                  disabled={loading}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  <Ionicons name="close" size={20} color={colors.onPrimary} />
-                </TouchableOpacity>
-              </>
-            ) : (
-              <View style={styles.placeholder}>
-                {/* Scanner Overlay */}
-                <View style={styles.scannerOverlay}>
-                  {/* Top-Left Corner */}
-                  <View style={[styles.corner, styles.cornerTopLeft]} />
-                  {/* Top-Right Corner */}
-                  <View style={[styles.corner, styles.cornerTopRight]} />
-                  {/* Bottom-Left Corner */}
-                  <View style={[styles.corner, styles.cornerBottomLeft]} />
-                  {/* Bottom-Right Corner */}
-                  <View style={[styles.corner, styles.cornerBottomRight]} />
-                  
-                  {/* Animated Scanning Line */}
-                  <Animated.View
-                    style={[
-                      styles.scanLine,
-                      {
-                        transform: [{ translateY: scanLineTranslate }],
-                      },
-                    ]}
-                  />
-                </View>
-
-                {/* Leaf Icon in Center */}
-                <View style={styles.placeholderIconWrapper}>
-                  <View style={styles.placeholderIconBackground}>
-                    <Ionicons name="leaf-outline" size={64} color={colors.primaryFixedDim} />
-                  </View>
-                </View>
-
-                <Text style={styles.placeholderTitle}>Upload a Leaf Image</Text>
-                <Text style={styles.placeholderSubtext}>
-                  Tap the camera or gallery button below to get started
-                </Text>
-              </View>
-            )}
-          </View>
-
-          {loading && (
-            <View style={styles.loadingContainer}>
-              <Text style={styles.loadingText}>Analyzing your leaf…</Text>
+      {/* Camera View */}
+      <View style={styles.cameraContainer}>
+        <View style={styles.cameraBackground}>
+          {image ? (
+            <Image source={{ uri: image }} style={styles.backgroundImage} resizeMode="cover" />
+          ) : (
+            <View style={styles.backgroundPlaceholder}>
+              <Ionicons name="leaf-outline" size={80} color="#88D982" opacity={0.5} />
+              <Text style={styles.placeholderText}>No Image Selected</Text>
             </View>
           )}
+          <View style={styles.cameraOverlay} />
+        </View>
 
-          {/* Button Row */}
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={[styles.button, styles.cameraButton]}
-              onPress={takePhoto}
-              activeOpacity={0.85}
-              disabled={loading}
-            >
-              <Ionicons name="camera-outline" size={22} color={colors.onPrimary} />
-              <Text style={styles.buttonText}>Take Photo</Text>
-            </TouchableOpacity>
+        {/* Scanning Frame */}
+        <View style={styles.scanFrameContainer}>
+          <View style={styles.scanFrame}>
+            <View style={styles.cornerTL} />
+            <View style={styles.cornerTR} />
+            <View style={styles.cornerBL} />
+            <View style={styles.cornerBR} />
 
-            <TouchableOpacity
-              style={[styles.button, styles.galleryButton]}
-              onPress={pickImage}
-              activeOpacity={0.85}
-              disabled={loading}
-            >
-              <Ionicons name="images-outline" size={22} color={colors.onSecondary} />
-              <Text style={styles.buttonText}>Upload Image</Text>
-            </TouchableOpacity>
+            <Animated.View
+              style={[
+                styles.scanLine,
+                { top: scanLineTranslate + '%' },
+              ]}
+            />
+
+            <Animated.View
+              style={[
+                styles.pulseRing,
+                { transform: [{ scale: pulseAnim }] },
+              ]}
+            />
           </View>
+        </View>
 
-          {/* Primary Action */}
+        {/* Scanning Status */}
+        {loading && (
+          <View style={styles.statusContainer}>
+            <View style={styles.statusHeader}>
+              <View style={styles.pingDot} />
+              <Text style={styles.statusLabel}>Analyzing...</Text>
+            </View>
+            <Text style={styles.statusDescription}>
+              Processing your image with AI.
+            </Text>
+          </View>
+        )}
+
+        {/* Control Buttons */}
+        <View style={styles.controlsContainer}>
           <TouchableOpacity
-            style={[styles.analyzeButton, loading && styles.disabledButton]}
-            onPress={analyzeImage}
-            activeOpacity={0.85}
+            style={[styles.controlButton, styles.flashButton]}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="flash-outline" size={22} color="#FFFFFF" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.shutterButton}
+            onPress={takePhoto}
+            activeOpacity={0.8}
             disabled={loading}
           >
-            <Ionicons name="scan-outline" size={24} color={colors.onPrimary} />
-            <Text style={styles.analyzeButtonText}>
-              {loading ? 'Analyzing…' : 'Analyze Leaf'}
-            </Text>
+            <View style={styles.shutterInner} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.controlButton, styles.galleryControlButton]}
+            onPress={pickImage}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="images-outline" size={22} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
-    </ImageBackground>
+
+        {/* Analyze Button */}
+        {image && !loading && (
+          <TouchableOpacity
+            style={styles.analyzeButton}
+            onPress={analyzeImage}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="scan-outline" size={24} color="#FFFFFF" />
+            <Text style={styles.analyzeButtonText}>Analyze Leaf</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  // ===== BACKGROUND IMAGE =====
-  backgroundImage: {
+  container: {
     flex: 1,
+    backgroundColor: '#000000',
+  },
+  // ===== TOP NAVIGATION =====
+  topNav: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
+  navButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  navTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  navRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  profileAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: '#A3F69C',
+  },
+  profileImage: {
     width: '100%',
     height: '100%',
   },
-  // ===== BLACK FADE OVERLAY =====
-  overlay: {
+  // ===== MODEL LOADING BAR =====
+  modelLoadingBar: {
+    position: 'absolute',
+    top: 80,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(46, 125, 50, 0.95)',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 20,
+    gap: 12,
+  },
+  loadingDots: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FFFFFF',
+  },
+  dot1: {
+    opacity: 1,
+  },
+  dot2: {
+    opacity: 0.6,
+  },
+  dot3: {
+    opacity: 0.3,
+  },
+  modelLoadingText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  // ===== CAMERA VIEW =====
+  cameraContainer: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
+  cameraBackground: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.25)', // Slight black fade - adjust opacity as needed
   },
-  container: {
-    flex: 1,
-    backgroundColor: 'transparent',
-    ...(Platform.OS === 'web' ? { height: '100vh', overflow: 'hidden' } : {}),
-  },
-  // ===== HEADER =====
-  header: {
+  backgroundImage: {
     width: '100%',
-    minHeight: HEADER_HEIGHT,
-    flexDirection: 'row',
+    height: '100%',
+  },
+  backgroundPlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#1a1a1a',
+    justifyContent: 'center',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
-    backgroundColor: 'rgba(255, 248, 246, 0.92)',
   },
-  backButton: {
-    padding: 4,
-    minWidth: 40,
+  placeholderText: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 16,
+    marginTop: 8,
   },
-  headerText: {
-    fontSize: 18,
-    fontWeight: '600',
+  cameraOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  // ===== SCAN FRAME =====
+  scanFrameContainer: {
     flex: 1,
-    textAlign: 'center',
-    letterSpacing: 0.3,
-  },
-  headerAction: {
-    padding: 4,
-    minWidth: 40,
-    alignItems: 'flex-end',
-  },
-  content: {
-    flex: 1,
-    padding: spacing.marginMobile,
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingBottom: 100,
   },
-  // ===== DESCRIPTION with background =====
-  descriptionWrapper: {
-    backgroundColor: 'rgba(255, 255, 255, 0.88)',
-    borderRadius: rounded.DEFAULT,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    marginBottom: spacing.xl,
-    width: '100%',
-  },
-  description: {
-    ...typography.bodyMd,
-    color: colors.onSurfaceVariant,
-    textAlign: 'center',
-    lineHeight: 24,
-  },
-  imageContainer: {
-    width: '100%',
-    height: 340,
-    backgroundColor: 'rgba(255, 241, 237, 0.92)',
-    borderRadius: rounded.md,
+  scanFrame: {
+    width: 280,
+    height: 280,
+    borderRadius: 24,
     borderWidth: 2,
-    borderColor: colors.primaryFixedDim,
+    borderColor: 'rgba(136, 217, 130, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
-    marginBottom: spacing.lg,
-    shadowColor: 'rgba(93, 64, 55, 0.08)',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 4,
-    elevation: 2,
     position: 'relative',
   },
-  image: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  removeButton: {
+  cornerTL: {
     position: 'absolute',
-    top: spacing.sm,
-    right: spacing.sm,
-    width: 44,
-    height: 44,
-    borderRadius: rounded.full,
-    backgroundColor: 'rgba(44, 22, 14, 0.55)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
+    top: -2,
+    left: -2,
+    width: 32,
+    height: 32,
+    borderTopWidth: 4,
+    borderLeftWidth: 4,
+    borderColor: '#88D982',
+    borderTopLeftRadius: 12,
   },
-  placeholder: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing.lg,
-    width: '100%',
-    height: '100%',
-    position: 'relative',
+  cornerTR: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 32,
+    height: 32,
+    borderTopWidth: 4,
+    borderRightWidth: 4,
+    borderColor: '#88D982',
+    borderTopRightRadius: 12,
   },
-  // Scanner Overlay
-  scannerOverlay: {
+  cornerBL: {
+    position: 'absolute',
+    bottom: -2,
+    left: -2,
+    width: 32,
+    height: 32,
+    borderBottomWidth: 4,
+    borderLeftWidth: 4,
+    borderColor: '#88D982',
+    borderBottomLeftRadius: 12,
+  },
+  cornerBR: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 32,
+    height: 32,
+    borderBottomWidth: 4,
+    borderRightWidth: 4,
+    borderColor: '#88D982',
+    borderBottomRightRadius: 12,
+  },
+  scanLine: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 2,
+    backgroundColor: '#88D982',
+    shadowColor: '#88D982',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 15,
+    elevation: 8,
+  },
+  pulseRing: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: 'rgba(136, 217, 130, 0.1)',
+    borderRadius: 24,
   },
-  corner: {
+  // ===== STATUS =====
+  statusContainer: {
     position: 'absolute',
-    width: 30,
-    height: 30,
-    borderColor: colors.primaryFixedDim,
-  },
-  cornerTopLeft: {
-    top: 20,
+    bottom: 160,
     left: 20,
-    borderTopWidth: 4,
-    borderLeftWidth: 4,
-    borderTopLeftRadius: 4,
-  },
-  cornerTopRight: {
-    top: 20,
     right: 20,
-    borderTopWidth: 4,
-    borderRightWidth: 4,
-    borderTopRightRadius: 4,
-  },
-  cornerBottomLeft: {
-    bottom: 20,
-    left: 20,
-    borderBottomWidth: 4,
-    borderLeftWidth: 4,
-    borderBottomLeftRadius: 4,
-  },
-  cornerBottomRight: {
-    bottom: 20,
-    right: 20,
-    borderBottomWidth: 4,
-    borderRightWidth: 4,
-    borderBottomRightRadius: 4,
-  },
-  scanLine: {
-    position: 'absolute',
-    left: 40,
-    right: 40,
-    height: 2,
-    backgroundColor: 'rgba(136, 217, 130, 0.6)',
-    shadowColor: colors.primaryFixedDim,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 8,
-    elevation: 4,
-    borderRadius: 2,
-  },
-  placeholderIconWrapper: {
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.sm,
-    zIndex: 1,
+    gap: 8,
   },
-  placeholderIconBackground: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    justifyContent: 'center',
+  statusHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(136, 217, 130, 0.2)',
+    gap: 8,
   },
-  placeholderTitle: {
-    ...typography.headlineSm,
-    fontSize: 18,
-    color: colors.onSurface,
-    marginTop: spacing.sm,
-    zIndex: 1,
+  pingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#88D982',
   },
-  placeholderSubtext: {
-    ...typography.bodyMd,
+  statusLabel: {
     fontSize: 14,
-    color: colors.onSurfaceVariant,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
+  statusDescription: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: 'rgba(255,255,255,0.8)',
     textAlign: 'center',
-    marginTop: spacing.xs,
-    paddingHorizontal: spacing.lg,
-    zIndex: 1,
   },
-  loadingContainer: {
-    paddingVertical: spacing.xs,
-    marginBottom: spacing.sm,
-  },
-  loadingText: {
-    ...typography.labelLg,
-    color: colors.primary,
-  },
-  buttonContainer: {
+  // ===== CONTROLS =====
+  controlsContainer: {
+    position: 'absolute',
+    bottom: 40,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginBottom: spacing.md,
-    gap: spacing.sm,
-  },
-  button: {
-    flex: 1,
-    flexDirection: 'row',
-    minHeight: MIN_TOUCH,
-    paddingHorizontal: spacing.md,
-    borderRadius: rounded.full,
-    alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.xs + 4,
+    alignItems: 'center',
+    gap: 24,
+    paddingHorizontal: 20,
   },
-  cameraButton: {
-    backgroundColor: colors.primaryContainer,
+  controlButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
-  galleryButton: {
-    backgroundColor: colors.secondary,
+  flashButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
+  shutterButton: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 4,
+    borderColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 4,
+  },
+  shutterInner: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 36,
+    backgroundColor: '#FFFFFF',
+  },
+  galleryControlButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  // ===== ANALYZE BUTTON =====
   analyzeButton: {
-    backgroundColor: colors.primaryContainer,
+    position: 'absolute',
+    bottom: 130,
+    left: 20,
+    right: 20,
+    backgroundColor: '#2E7D32',
     flexDirection: 'row',
-    minHeight: MIN_TOUCH,
-    paddingHorizontal: spacing.lg,
-    borderRadius: rounded.full,
-    width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.sm,
-    shadowColor: 'rgba(93, 64, 55, 0.12)',
+    paddingVertical: 16,
+    borderRadius: 12,
+    gap: 10,
+    shadowColor: '#2E7D32',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  disabledButton: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    ...typography.labelLg,
-    color: colors.onPrimary,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   analyzeButtonText: {
-    ...typography.labelLg,
+    color: '#FFFFFF',
+    fontWeight: '700',
     fontSize: 16,
-    color: colors.onPrimary,
+    letterSpacing: 0.5,
   },
 });
 

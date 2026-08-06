@@ -65,7 +65,7 @@ const findTabNavigator = (navigation) => {
 };
 
 const ResultScreen = ({ route, navigation }) => {
-  const { imageUri, scanDate } = route.params || {};
+  const { imageUri, scanDate, diseaseKey, diseaseLabel, confidence } = route.params || {};
   const [isSaved, setIsSaved] = useState(false);
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [savedModalVisible, setSavedModalVisible] = useState(false);
@@ -116,11 +116,47 @@ const ResultScreen = ({ route, navigation }) => {
     }
   }, [confirmVisible]);
 
-  const diseaseData = {
-    name: 'Cassava Mosaic Disease',
-    description: 'A viral disease that causes yellow mosaic patterns on leaves.',
-    treatment: 'Remove infected plants, use resistant varieties, control whitefly vectors.',
-    prevention: 'Plant certified disease-free cuttings, practice crop rotation.',
+  // Info for all 5 classes the model can predict. Keyed by the same `key`
+  // values used in ScannerScreen's CLASS_INFO, so whichever class the model
+  // predicts, we show the matching description/treatment/prevention here.
+  const DISEASE_INFO = {
+    CBB: {
+      name: 'Cassava Bacterial Blight',
+      description: 'A bacterial disease causing angular, water-soaked leaf spots that turn brown and can lead to wilting and dieback.',
+      treatment: 'Remove and destroy infected plant parts. Apply copper-based bactericides and avoid working in fields when leaves are wet.',
+      prevention: 'Use certified disease-free planting material, practice crop rotation, and avoid overhead irrigation.',
+    },
+    CBSD: {
+      name: 'Cassava Brown Streak Disease',
+      description: 'A viral disease that causes brown streaking on stems and a dry, corky brown rot inside the storage roots, often with mild or no leaf symptoms.',
+      treatment: 'Remove and destroy infected plants promptly. There is no cure once infected, so early removal limits spread to healthy plants.',
+      prevention: 'Plant certified virus-free cuttings, control whitefly populations, and avoid planting near known infected fields.',
+    },
+    CGM: {
+      name: 'Cassava Green Mottle',
+      description: 'Causes mottled, mosaic-like discoloration and mild distortion of leaves, generally less severe than other cassava viral diseases.',
+      treatment: 'Remove severely affected plants. Support plant health with balanced fertilization to reduce stress.',
+      prevention: 'Use resistant varieties where available and source planting material from healthy, disease-free stock.',
+    },
+    CMD: {
+      name: 'Cassava Mosaic Disease',
+      description: 'A viral disease that causes yellow mosaic patterns on leaves. Infected plants show stunted growth and reduced yield.',
+      treatment: 'Remove infected plants, use resistant varieties, control whitefly vectors.',
+      prevention: 'Plant certified disease-free cuttings, practice crop rotation.',
+    },
+    HEALTHY: {
+      name: 'Healthy Cassava Leaf',
+      description: 'No signs of disease detected. The leaf shows normal color, shape, and growth patterns.',
+      treatment: 'No treatment needed. Continue regular monitoring and good agricultural practices.',
+      prevention: 'Maintain proper spacing, balanced fertilization, and routine field inspection to catch issues early.',
+    },
+  };
+
+  // Fall back to CMD info only if something unexpected comes through (e.g.
+  // testing this screen without a real scan) so the UI never renders blank.
+  const diseaseData = DISEASE_INFO[diseaseKey] || {
+    ...DISEASE_INFO.CMD,
+    name: diseaseLabel || DISEASE_INFO.CMD.name,
   };
 
   const scannedAt = scanDate ? new Date(scanDate) : new Date();

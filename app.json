@@ -3,9 +3,40 @@
     "name": "RootCare",
     "slug": "rootcare",
     "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.rootcare.app"
+    },
     "android": {
       "package": "com.rootcare.app",
-      "softwareKeyboardLayoutMode": "resize"
+      "softwareKeyboardLayoutMode": "resize",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.INTERNET"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-image-picker",
+      "expo-camera",
+      "expo-file-system",
+      "expo-secure-store",
+      "react-native-fast-tflite"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "4ed0d848-f794-4803-b9e5-b0c1c0f7c2ab"
+      }
     }
   }
 }

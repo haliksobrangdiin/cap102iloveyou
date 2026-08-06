@@ -1,4 +1,5 @@
-﻿// App.js
+﻿import { Buffer } from 'buffer';
+global.Buffer = global.Buffer || Buffer;
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
