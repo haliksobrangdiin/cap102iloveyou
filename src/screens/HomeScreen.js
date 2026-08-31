@@ -19,6 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useNavigation } from '@react-navigation/native';
+import { supabase } from '../utils/supabaseClient';
 
 const { width, height } = Dimensions.get('window');
 
@@ -316,15 +317,63 @@ const WeatherAlertModal = ({ visible, onClose }) => {
 const HomeScreen = ({ navigation }) => {
   const scanScale = useState(new Animated.Value(1))[0];
   const [weatherModalVisible, setWeatherModalVisible] = useState(false);
+  
+  // ===== NEW: USER PROFILE STATE =====
+  const [displayName, setDisplayName] = useState('RootCare');
+  const [profileLoading, setProfileLoading] = useState(true);
 
   // ===== SCAN STREAK DATA =====
   const [streakData, setStreakData] = useState({
     count: 5,
-    scannedToday: [true, true, true, true, true, false, false], // Mon-Sun
+    scannedToday: [true, true, true, true, true, false, false],
   });
 
-  // ===== NEW: REFRESH STATE =====
+  // ===== REFRESH STATE =====
   const [refreshing, setRefreshing] = useState(false);
+
+  // ===== NEW: FETCH USER PROFILE =====
+  const fetchUserProfile = async () => {
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError) {
+        console.error('Error fetching user:', userError.message);
+        setDisplayName('RootCare');
+        return;
+      }
+      
+      if (user) {
+        // Fetch profile from profiles table
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('display_name, first_name, last_name')
+          .eq('id', user.id)
+          .single();
+        
+        if (profileError) {
+          console.error('Error fetching profile:', profileError.message);
+          // Fallback to user email or default
+          setDisplayName('RootCare');
+        } else if (profile) {
+          // Use display_name, or fallback to first_name + last_name
+          const name = profile.display_name || 
+                      `${profile.first_name || ''} ${profile.last_name || ''}`.trim() ||
+                      'RootCare';
+          setDisplayName(name);
+        } else {
+          setDisplayName('RootCare');
+        }
+      } else {
+        // No user logged in (guest mode)
+        setDisplayName('RootCare');
+      }
+    } catch (error) {
+      console.error('Unexpected error fetching profile:', error);
+      setDisplayName('RootCare');
+    } finally {
+      setProfileLoading(false);
+    }
+  };
 
   const startPulse = () => {
     Animated.sequence([
@@ -343,27 +392,26 @@ const HomeScreen = ({ navigation }) => {
 
   React.useEffect(() => {
     startPulse();
+    fetchUserProfile(); // Fetch profile on mount
   }, []);
 
-  // ===== NEW: PULL TO REFRESH FUNCTION =====
-  const handleRefresh = () => {
+  // ===== PULL TO REFRESH FUNCTION =====
+  const handleRefresh = async () => {
     setRefreshing(true);
     
-    // Simulate network/data fetching (e.g., fetching latest weather or scan history)
-    // You can replace this with your actual API calls.
+    // Fetch fresh profile data
+    await fetchUserProfile();
+    
+    // Simulate network/data fetching
     setTimeout(() => {
-      // Optional: Update your data here
       setStreakData({
         count: 5,
         scannedToday: [true, true, true, true, true, false, false],
       });
       
-      // Add a haptic success when done
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      
-      // Stop the refresh spinner
       setRefreshing(false);
-    }, 1500); // 1.5-second simulated delay
+    }, 1500);
   };
 
   return (
@@ -381,7 +429,9 @@ const HomeScreen = ({ navigation }) => {
             </View>
             <View style={styles.headerTextContainer}>
               <Text style={styles.greetingText}>Welcome back</Text>
-              <Text style={styles.headerTitle}>RootCare</Text>
+              <Text style={styles.headerTitle}>
+                {profileLoading ? 'Loading...' : displayName}
+              </Text>
             </View>
           </View>
           <TouchableOpacity style={styles.notificationButton}>
@@ -406,9 +456,11 @@ const HomeScreen = ({ navigation }) => {
         }
       >
         {/* Greeting & Weather */}
-        <View style={styles.greetingSection}>
+           <View style={styles.greetingSection}>
           <View style={styles.greetingTextBlock}>
-            <Text style={styles.greetingTitle}>Good morning, Farmer!</Text>
+            <Text style={styles.greetingTitle}>
+              Good morning, {profileLoading ? 'Farmer' : displayName.split(' ')[0]}!
+            </Text>
             <Text style={styles.greetingSubtitle}>Your crops are thriving today.</Text>
           </View>
           
