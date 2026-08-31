@@ -9,7 +9,6 @@ import {
   Platform,
   KeyboardAvoidingView,
   ScrollView,
-  Alert,
   ActivityIndicator,
   Image,
   Modal,
@@ -44,67 +43,47 @@ const colors = {
   'on-background': '#2C160E',
 };
 
-// Custom Modal Component
 const CustomModal = ({ visible, onClose, title, message, type = 'success', onConfirm }) => {
   const getIcon = () => {
     switch(type) {
-      case 'success':
-        return { name: 'checkmark-circle', color: '#27AE60' };
-      case 'error':
-        return { name: 'alert-circle', color: colors.error };
-      case 'warning':
-        return { name: 'warning', color: '#F39C12' };
-      default:
-        return { name: 'information-circle', color: colors.primary };
+      case 'success': return { name: 'checkmark-circle', color: '#27AE60' };
+      case 'error': return { name: 'alert-circle', color: colors.error };
+      case 'warning': return { name: 'warning', color: '#F39C12' };
+      default: return { name: 'information-circle', color: colors.primary };
     }
   };
 
   const icon = getIcon();
 
+  const handleActionPress = () => {
+    onClose(); 
+    if (onConfirm) {
+      setTimeout(() => {
+        onConfirm();
+      }, 1000);
+    }
+  };
+
   return (
-    <Modal
-      transparent={true}
-      visible={visible}
-      animationType="fade"
-      onRequestClose={onClose}
-    >
+    <Modal transparent={true} visible={visible} animationType="fade" onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContainer}>
-          {/* Icon */}
           <View style={[styles.modalIconContainer, { backgroundColor: icon.color + '15' }]}>
             <Ionicons name={icon.name} size={48} color={icon.color} />
           </View>
-
-          {/* Title */}
           <Text style={styles.modalTitle}>{title}</Text>
-
-          {/* Message */}
           <Text style={styles.modalMessage}>{message}</Text>
-
-          {/* Action Buttons */}
           <View style={styles.modalButtonContainer}>
             {type === 'success' ? (
-              <TouchableOpacity
-                style={[styles.modalButton, styles.modalPrimaryButton]}
-                onPress={onConfirm || onClose}
-                activeOpacity={0.8}
-              >
+              <TouchableOpacity style={[styles.modalButton, styles.modalPrimaryButton]} onPress={handleActionPress} activeOpacity={0.8}>
                 <Text style={styles.modalButtonText}>Continue</Text>
               </TouchableOpacity>
             ) : (
               <>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.modalCancelButton]}
-                  onPress={onClose}
-                  activeOpacity={0.8}
-                >
+                <TouchableOpacity style={[styles.modalButton, styles.modalCancelButton]} onPress={onClose} activeOpacity={0.8}>
                   <Text style={styles.modalCancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.modalPrimaryButton]}
-                  onPress={onConfirm || onClose}
-                  activeOpacity={0.8}
-                >
+                <TouchableOpacity style={[styles.modalButton, styles.modalPrimaryButton]} onPress={handleActionPress} activeOpacity={0.8}>
                   <Text style={styles.modalButtonText}>OK</Text>
                 </TouchableOpacity>
               </>
@@ -124,7 +103,6 @@ const LoginScreen = ({ navigation }) => {
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
   
-  // Modal states
   const [modalVisible, setModalVisible] = useState(false);
   const [modalTitle, setModalTitle] = useState('');
   const [modalMessage, setModalMessage] = useState('');
@@ -139,9 +117,7 @@ const LoginScreen = ({ navigation }) => {
     setModalVisible(true);
   };
 
-  const closeModal = () => {
-    setModalVisible(false);
-  };
+  const closeModal = () => setModalVisible(false);
 
   const handleLogin = () => {
     if (!email || !password) {
@@ -161,12 +137,7 @@ const LoginScreen = ({ navigation }) => {
     setTimeout(() => {
       setIsLoading(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      showModal(
-        'Welcome Back! 🎉',
-        'You have successfully logged in to RootCare.',
-        'success',
-        () => navigation.replace('MainTabs')
-      );
+      showModal('Welcome Back! 🎉', 'You have successfully logged in to RootCare.', 'success', () => navigation.replace('MainTabs'));
     }, 1500);
   };
 
@@ -185,12 +156,7 @@ const LoginScreen = ({ navigation }) => {
 
   const handleForgotPassword = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    showModal(
-      'Reset Password',
-      'A password reset link will be sent to your email address.',
-      'success',
-      () => closeModal()
-    );
+    showModal('Reset Password', 'A password reset link will be sent to your email address.', 'success', () => closeModal());
   };
 
   const handleRegister = () => {
@@ -198,164 +164,125 @@ const LoginScreen = ({ navigation }) => {
     navigation.navigate('Register');
   };
 
+  const formContent = (
+    <>
+      <View style={styles.logoSection}>
+        <View style={styles.logoContainer}>
+          <Image source={require('../assets/logo.png')} style={styles.logo} resizeMode="contain" />
+        </View>
+        <Text style={styles.welcomeText}>Welcome Back</Text>
+        <Text style={styles.subtitleText}>Sign in to manage your fields</Text>
+      </View>
+
+      <View style={styles.formContainer}>
+        {/* Email Input */}
+        <View style={styles.inputWrapper}>
+          <View style={[styles.inputContainer, emailFocused && styles.inputFocused]}>
+            <TextInput
+              style={styles.input}
+              placeholder=" "
+              value={email}
+              onChangeText={setEmail}
+              onFocus={() => setEmailFocused(true)}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <Text pointerEvents="none" style={[styles.floatingLabel, (emailFocused || email) && styles.floatingLabelActive]}>
+              Email Address
+            </Text>
+          </View>
+        </View>
+
+        {/* Password Input */}
+        <View style={styles.inputWrapper}>
+          <View style={[styles.inputContainer, passwordFocused && styles.inputFocused]}>
+            <TextInput
+              style={[styles.input, styles.passwordInput]}
+              placeholder=" "
+              value={password}
+              onChangeText={setPassword}
+              onFocus={() => setPasswordFocused(true)}
+              secureTextEntry={!showPassword}
+              autoCapitalize="none"
+            />
+            <Text pointerEvents="none" style={[styles.floatingLabel, (passwordFocused || password) && styles.floatingLabelActive]}>
+              Password
+            </Text>
+            <TouchableOpacity style={styles.eyeIcon} onPress={() => setShowPassword(!showPassword)} activeOpacity={0.7}>
+              <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={22} color={colors['on-surface-variant']} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <TouchableOpacity style={styles.forgotPasswordContainer} onPress={handleForgotPassword} activeOpacity={0.7}>
+          <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[styles.loginButton, isLoading && styles.loginButtonDisabled]} onPress={handleLogin} activeOpacity={0.85} disabled={isLoading}>
+          {isLoading ? (
+            <ActivityIndicator size="small" color={colors['on-primary']} />
+          ) : (
+            <>
+              <Text style={styles.loginButtonText}>Login</Text>
+              <Ionicons name="arrow-forward" size={20} color={colors['on-primary']} />
+            </>
+          )}
+        </TouchableOpacity>
+
+        <View style={styles.dividerContainer}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>Or</Text>
+          <View style={styles.dividerLine} />
+        </View>
+
+        <TouchableOpacity style={styles.googleButton} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); showModal('Google Sign In', 'Google authentication will be available soon!', 'info'); }} activeOpacity={0.7}>
+          <View style={styles.googleIcon}><Text style={styles.googleIconText}>G</Text></View>
+          <Text style={styles.googleButtonText}>Continue with Google</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.guestButton} onPress={handleGuestLogin} activeOpacity={0.7}>
+          <Ionicons name="person-outline" size={20} color={colors.primary} />
+          <Text style={styles.guestButtonText}>Continue as Guest</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.registerContainer}>
+        <Text style={styles.registerText}>Don't have an account? </Text>
+        <TouchableOpacity onPress={handleRegister} activeOpacity={0.7}>
+          <Text style={styles.registerLink}>Register</Text>
+        </TouchableOpacity>
+      </View>
+    </>
+  );
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
+      {/* 
+        FINAL FIX: KeyboardAvoidingView only on iOS. 
+        Removed onBlur handlers to stop Android's native "immediate blur" bug.
+      */}
+      {Platform.OS === 'ios' ? (
+        <KeyboardAvoidingView behavior="padding" style={styles.keyboardView}>
+          <ScrollView 
+            contentContainerStyle={styles.scrollContent} 
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {formContent}
+          </ScrollView>
+        </KeyboardAvoidingView>
+      ) : (
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent} 
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Logo Section */}
-          <View style={styles.logoSection}>
-            <View style={styles.logoContainer}>
-              <Image
-                source={require('../assets/logo.png')}
-                style={styles.logo}
-                resizeMode="contain"
-              />
-            </View>
-            <Text style={styles.welcomeText}>Welcome Back</Text>
-            <Text style={styles.subtitleText}>Sign in to manage your fields</Text>
-          </View>
-
-          {/* Login Form */}
-          <View style={styles.formContainer}>
-            {/* Email Input */}
-            <View style={styles.inputWrapper}>
-              <View style={[styles.inputContainer, emailFocused && styles.inputFocused]}>
-                <TextInput
-                  style={styles.input}
-                  placeholder=" "
-                  value={email}
-                  onChangeText={setEmail}
-                  onFocus={() => setEmailFocused(true)}
-                  onBlur={() => setEmailFocused(false)}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-                <Text style={[styles.floatingLabel, (emailFocused || email) && styles.floatingLabelActive]}>
-                  Email Address
-                </Text>
-              </View>
-            </View>
-
-            {/* Password Input */}
-            <View style={styles.inputWrapper}>
-              <View style={[styles.inputContainer, passwordFocused && styles.inputFocused]}>
-                <TextInput
-                  style={[styles.input, styles.passwordInput]}
-                  placeholder=" "
-                  value={password}
-                  onChangeText={setPassword}
-                  onFocus={() => setPasswordFocused(true)}
-                  onBlur={() => setPasswordFocused(false)}
-                  secureTextEntry={!showPassword}
-                  autoCapitalize="none"
-                />
-                <Text style={[styles.floatingLabel, (passwordFocused || password) && styles.floatingLabelActive]}>
-                  Password
-                </Text>
-                <TouchableOpacity
-                  style={styles.eyeIcon}
-                  onPress={() => setShowPassword(!showPassword)}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons
-                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                    size={22}
-                    color={colors['on-surface-variant']}
-                  />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Forgot Password */}
-            <TouchableOpacity
-              style={styles.forgotPasswordContainer}
-              onPress={handleForgotPassword}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-            </TouchableOpacity>
-
-            {/* Login Button */}
-            <TouchableOpacity
-              style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
-              onPress={handleLogin}
-              activeOpacity={0.85}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <ActivityIndicator size="small" color={colors['on-primary']} />
-              ) : (
-                <>
-                  <Text style={styles.loginButtonText}>Login</Text>
-                  <Ionicons name="arrow-forward" size={20} color={colors['on-primary']} />
-                </>
-              )}
-            </TouchableOpacity>
-
-            {/* Divider */}
-            <View style={styles.dividerContainer}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>Or</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            {/* Google Sign In */}
-            <TouchableOpacity
-              style={styles.googleButton}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                showModal(
-                  'Google Sign In',
-                  'Google authentication will be available soon!',
-                  'info'
-                );
-              }}
-              activeOpacity={0.7}
-            >
-              <View style={styles.googleIcon}>
-                <Text style={styles.googleIconText}>G</Text>
-              </View>
-              <Text style={styles.googleButtonText}>Continue with Google</Text>
-            </TouchableOpacity>
-
-            {/* Guest Login */}
-            <TouchableOpacity
-              style={styles.guestButton}
-              onPress={handleGuestLogin}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="person-outline" size={20} color={colors.primary} />
-              <Text style={styles.guestButtonText}>Continue as Guest</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Register Link */}
-          <View style={styles.registerContainer}>
-            <Text style={styles.registerText}>Don't have an account? </Text>
-            <TouchableOpacity onPress={handleRegister} activeOpacity={0.7}>
-              <Text style={styles.registerLink}>Register</Text>
-            </TouchableOpacity>
-          </View>
+          {formContent}
         </ScrollView>
-      </KeyboardAvoidingView>
+      )}
 
-      {/* Custom Modal */}
-      <CustomModal
-        visible={modalVisible}
-        onClose={closeModal}
-        title={modalTitle}
-        message={modalMessage}
-        type={modalType}
-        onConfirm={modalOnConfirm}
-      />
+      <CustomModal visible={modalVisible} onClose={closeModal} title={modalTitle} message={modalMessage} type={modalType} onConfirm={modalOnConfirm} />
     </SafeAreaView>
   );
 };
@@ -372,9 +299,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 20,
     paddingVertical: 24,
-    justifyContent: 'center',
   },
-  // Logo Section
   logoSection: {
     alignItems: 'center',
     marginBottom: 32,
@@ -412,7 +337,6 @@ const styles = StyleSheet.create({
     color: colors['on-surface-variant'],
     fontFamily: 'OpenSans_400Regular',
   },
-  // Form Container
   formContainer: {
     backgroundColor: colors['surface-container-lowest'],
     borderRadius: 12,
@@ -425,7 +349,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 1,
   },
-  // Input
   inputWrapper: {
     marginBottom: 16,
   },
@@ -465,7 +388,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors['on-surface-variant'],
     fontFamily: 'OpenSans_400Regular',
-    pointerEvents: 'none',
   },
   floatingLabelActive: {
     top: 6,
@@ -490,7 +412,6 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontFamily: 'OpenSans_600SemiBold',
   },
-  // Login Button
   loginButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -516,7 +437,6 @@ const styles = StyleSheet.create({
     fontFamily: 'OpenSans_600SemiBold',
     letterSpacing: 0.5,
   },
-  // Divider
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -536,7 +456,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     fontFamily: 'OpenSans_500Medium',
   },
-  // Google Button
   googleButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -568,7 +487,6 @@ const styles = StyleSheet.create({
     color: colors['on-surface'],
     fontFamily: 'OpenSans_600SemiBold',
   },
-  // Guest Button
   guestButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -584,7 +502,6 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontFamily: 'OpenSans_600SemiBold',
   },
-  // Register Link
   registerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -603,7 +520,6 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontFamily: 'OpenSans_600SemiBold',
   },
-  // ===== MODAL STYLES =====
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',

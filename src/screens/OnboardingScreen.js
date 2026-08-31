@@ -85,6 +85,20 @@ const OnboardingScreen = ({ navigation }) => {
     }
   };
 
+  const handleBack = () => {
+    if (currentIndex > 0) {
+      flatListRef.current?.scrollToIndex({
+        index: currentIndex - 1,
+        animated: true,
+      });
+      setCurrentIndex(currentIndex - 1);
+    }
+  };
+
+  const handleSkip = () => {
+    navigation.replace('Login');
+  };
+
   const renderItem = ({ item, index }) => {
     const isLast = index === slides.length - 1;
     const isFirstSlide = index === 0;
@@ -100,6 +114,19 @@ const OnboardingScreen = ({ navigation }) => {
     return (
       <View style={styles.slide}>
         <StatusBar barStyle="dark-content" />
+
+        {/* Skip Button - Top Right (Slightly tucked in) */}
+        <View style={styles.topNavigation}>
+          {!isLast && (
+            <TouchableOpacity
+              style={styles.skipButton}
+              onPress={handleSkip}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.skipButtonText}>Skip</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
         <View style={styles.contentWrapper}>
           <View style={styles.imageContainer}>
@@ -153,6 +180,7 @@ const OnboardingScreen = ({ navigation }) => {
         </View>
 
         <View style={styles.navigationContainer}>
+          {/* Dots */}
           <View style={styles.dotsContainer}>
             {slides.map((_, i) => {
               const inputRange = [
@@ -188,14 +216,31 @@ const OnboardingScreen = ({ navigation }) => {
             })}
           </View>
 
-          <TouchableOpacity
-            style={styles.button}
-            onPress={handleNext}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.buttonText}>{getButtonText()}</Text>
-            <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
-          </TouchableOpacity>
+          {/* Bottom Navigation */}
+          <View style={styles.bottomNavigation}>
+            {/* Back Button */}
+            {!isFirstSlide && (
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={handleBack}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.backButtonText}>Back</Text>
+              </TouchableOpacity>
+            )}
+
+            {/* Next/Get Started Button */}
+            <TouchableOpacity
+              style={[styles.nextButton, isFirstSlide && styles.nextButtonFullWidth]}
+              onPress={handleNext}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.nextButtonText}>{getButtonText()}</Text>
+              {!isLast && (
+                <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     );
@@ -283,6 +328,7 @@ const OnboardingScreen = ({ navigation }) => {
             const index = Math.round(event.nativeEvent.contentOffset.x / width);
             setCurrentIndex(index);
           }}
+          scrollEnabled={false}
         />
       )}
     </SafeAreaView>
@@ -398,12 +444,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  splashLoadingDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#2E7D32',
-  },
   splashLoadingText: {
     fontSize: 10,
     fontWeight: '500',
@@ -436,6 +476,25 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     backgroundColor: '#FFF8F6',
   },
+
+  topNavigation: {
+    position: 'absolute',
+    top: 85,
+    right: 35,
+    zIndex: 10,
+  },
+  skipButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  skipButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#707A6C',
+    letterSpacing: 0.3,
+  },
   contentWrapper: {
     flex: 1,
     justifyContent: 'center',
@@ -446,27 +505,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     position: 'relative',
     marginBottom: 16,
-  },
-  logoWrapperFirst: {
-    width: 160,
-    height: 160,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-    marginBottom: 5,
-  },
-  logoImage: {
-    width: '100%',
-    height: '100%',
-  },
-  logoGlow: {
-    position: 'absolute',
-    top: -20,
-    left: -20,
-    right: -20,
-    bottom: -20,
-    borderRadius: 100,
-    backgroundColor: 'rgba(13, 99, 27, 0.05)',
+    marginTop: 40, // Added margin to make room for the Skip button
   },
   imageWrapper: {
     width: '100%',
@@ -632,7 +671,7 @@ const styles = StyleSheet.create({
   },
   navigationContainer: {
     alignItems: 'center',
-    gap: 16,
+    gap: 12,
     paddingBottom: 10,
     width: '100%',
   },
@@ -640,21 +679,50 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    marginBottom: 4,
   },
   dot: {
     height: 8,
     borderRadius: 4,
     backgroundColor: '#0D631B',
   },
-  button: {
+  bottomNavigation: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    gap: 12,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1A4D1E',
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    borderRadius: 12,
+    flex: 1,
+    shadowColor: '#1A4D1E',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  backButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  nextButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#2E7D32',
-    paddingVertical: 16,
-    paddingHorizontal: 32,
+    paddingVertical: 14,
+    paddingHorizontal: 28,
     borderRadius: 12,
-    width: '100%',
+    flex: 1,
     gap: 8,
     shadowColor: '#2E7D32',
     shadowOffset: { width: 0, height: 4 },
@@ -662,8 +730,11 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
-  buttonText: {
-    fontSize: 14,
+  nextButtonFullWidth: {
+    flex: 1,
+  },
+  nextButtonText: {
+    fontSize: 15,
     fontWeight: '600',
     color: '#FFFFFF',
     letterSpacing: 0.5,
