@@ -30,7 +30,8 @@
       "expo-image-picker",
       "expo-camera",
       "expo-file-system",
-      "expo-secure-store"
+      "expo-secure-store",
+      "react-native-fast-tflite"
     ],
     "extra": {
       "eas": {
