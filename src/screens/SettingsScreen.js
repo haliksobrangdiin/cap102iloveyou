@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { supabase } from '../utils/supabaseClient';
 
 const colors = {
   surface: '#FFF8F6',
@@ -72,14 +73,29 @@ const SettingsScreen = ({ navigation }) => {
     setExitConfirmVisible(false);
   };
 
-  const confirmExit = () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setExitConfirmVisible(false);
+  const confirmExit = async () => {
+  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  setExitConfirmVisible(false);
+  
+  try {
+    // Sign out from Supabase (clears session)
+    const { error } = await supabase.auth.signOut();
+    
+    if (error) {
+      console.error('Supabase logout error:', error);
+    } else {
+      console.log('✅ Successfully logged out from Supabase');
+    }
+  } catch (error) {
+    console.error('Logout error:', error);
+  } finally {
+    // Navigate to Onboarding regardless
     navigation.reset({
       index: 0,
       routes: [{ name: 'Onboarding' }],
     });
-  };
+  }
+};
 
   const themeColors = {
     background: isDarkMode ? '#1A1A1A' : colors.surface,

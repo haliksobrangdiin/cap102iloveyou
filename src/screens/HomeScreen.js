@@ -333,47 +333,50 @@ const HomeScreen = ({ navigation }) => {
 
   // ===== NEW: FETCH USER PROFILE =====
   const fetchUserProfile = async () => {
-    try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
-      if (userError) {
-        console.error('Error fetching user:', userError.message);
-        setDisplayName('RootCare');
-        return;
-      }
-      
-      if (user) {
-        // Fetch profile from profiles table
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('display_name, first_name, last_name')
-          .eq('id', user.id)
-          .single();
-        
-        if (profileError) {
-          console.error('Error fetching profile:', profileError.message);
-          // Fallback to user email or default
-          setDisplayName('RootCare');
-        } else if (profile) {
-          // Use display_name, or fallback to first_name + last_name
-          const name = profile.display_name || 
-                      `${profile.first_name || ''} ${profile.last_name || ''}`.trim() ||
-                      'RootCare';
-          setDisplayName(name);
-        } else {
-          setDisplayName('RootCare');
-        }
+  try {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError) {
+      // Don't log as error if no session - this is expected for guest mode
+      if (userError.message.includes('Auth session missing')) {
+        console.log('No active session (guest mode)');
       } else {
-        // No user logged in (guest mode)
+        console.error('Error fetching user:', userError.message);
+      }
+      setDisplayName('RootCare');
+      return;
+    }
+    
+    if (user) {
+      // Fetch profile from profiles table
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('display_name, first_name, last_name')
+        .eq('id', user.id)
+        .single();
+      
+      if (profileError) {
+        console.error('Error fetching profile:', profileError.message);
+        setDisplayName('RootCare');
+      } else if (profile) {
+        const name = profile.display_name || 
+                    `${profile.first_name || ''} ${profile.last_name || ''}`.trim() ||
+                    'RootCare';
+        setDisplayName(name);
+      } else {
         setDisplayName('RootCare');
       }
-    } catch (error) {
-      console.error('Unexpected error fetching profile:', error);
+    } else {
+      // No user logged in (guest mode)
       setDisplayName('RootCare');
-    } finally {
-      setProfileLoading(false);
     }
-  };
+  } catch (error) {
+    console.error('Unexpected error fetching profile:', error);
+    setDisplayName('RootCare');
+  } finally {
+    setProfileLoading(false);
+  }
+};
 
   const startPulse = () => {
     Animated.sequence([
