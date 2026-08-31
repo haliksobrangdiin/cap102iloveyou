@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Platform,
   ScrollView,
-  Alert,
   Switch,
   Modal,
 } from 'react-native';
@@ -15,11 +14,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
-// RootCare Design System tokens - aligned with the exact palette roles used
-// in OnboardingScreen: '#0D631B' is the brand/heading green (splash title,
-// calendar "today" accent elsewhere), while '#2E7D32' is the action/button
-// green (the "Get Started" button). Keeping those roles consistent here so
-// Settings reads as the same app as onboarding, not a different palette.
 const colors = {
   surface: '#FFF8F6',
   'surface-dim': '#FBD1C4',
@@ -57,24 +51,11 @@ const colors = {
 
 const SettingsScreen = ({ navigation }) => {
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [selectedLanguage, setSelectedLanguage] = useState('English');
   const [pushNotifications, setPushNotifications] = useState(true);
   const [weatherAlerts, setWeatherAlerts] = useState(true);
   const [marketUpdates, setMarketUpdates] = useState(false);
 
-  // Styled confirm modal replacing the native Alert.alert('Exit App', ...).
-  // Same rounded-card + icon-circle shape as the Result/History screens'
-  // confirm modals, but tinted with the error color since exiting/logging
-  // out is the destructive action here (matches how the "Log Out" button
-  // below is already styled in error red).
   const [exitConfirmVisible, setExitConfirmVisible] = useState(false);
-
-  const languages = ['English', 'Français', 'Yoruba'];
-
-  const handleLanguageSelect = (language) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setSelectedLanguage(language);
-  };
 
   const toggleDarkMode = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -100,11 +81,6 @@ const SettingsScreen = ({ navigation }) => {
     });
   };
 
-  // accent = brand/heading green, matches the OnboardingScreen splash title
-  // and dot indicators ('#0D631B').
-  // primary = action/button green, matches the OnboardingScreen
-  // "Get Started" button ('#2E7D32'). Interactive elements (selected chips,
-  // badges) use `primary`; headings/section titles use `accent`.
   const themeColors = {
     background: isDarkMode ? '#1A1A1A' : colors.surface,
     surface: isDarkMode ? '#2C2C2C' : colors['surface-container-lowest'],
@@ -124,7 +100,7 @@ const SettingsScreen = ({ navigation }) => {
       style={[styles.container, { backgroundColor: themeColors.background }]}
       edges={['top']}
     >
-      {/* ===== HEADER WITH SEARCH REMOVED ===== */}
+      {/* ===== HEADER ===== */}
       <View style={[styles.header, { backgroundColor: themeColors.background }]}>
         <TouchableOpacity
           style={styles.backButton}
@@ -143,7 +119,7 @@ const SettingsScreen = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: 100 },
+          { paddingBottom: 40 },
         ]}
       >
         {/* ===== PROFILE SECTION ===== */}
@@ -195,112 +171,37 @@ const SettingsScreen = ({ navigation }) => {
 
           <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
             <View style={styles.menuItemLeft}>
-              <Ionicons
-                name="person-outline"
-                size={20}
-                color={colors.secondary}
-              />
+              <Ionicons name="person-outline" size={20} color={colors.secondary} />
               <Text style={[styles.menuItemText, { color: themeColors.text }]}>
                 Edit Profile
               </Text>
             </View>
-            <Ionicons
-              name="chevron-forward"
-              size={20}
-              color={themeColors.textSecondary}
-            />
+            <Ionicons name="chevron-forward" size={20} color={themeColors.textSecondary} />
           </TouchableOpacity>
 
           <View style={[styles.divider, { backgroundColor: themeColors.border }]} />
 
           <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
             <View style={styles.menuItemLeft}>
-              <Ionicons
-                name="lock-closed-outline"
-                size={20}
-                color={colors.secondary}
-              />
+              <Ionicons name="lock-closed-outline" size={20} color={colors.secondary} />
               <Text style={[styles.menuItemText, { color: themeColors.text }]}>
                 Change Password
               </Text>
             </View>
-            <Ionicons
-              name="chevron-forward"
-              size={20}
-              color={themeColors.textSecondary}
-            />
+            <Ionicons name="chevron-forward" size={20} color={themeColors.textSecondary} />
           </TouchableOpacity>
 
           <View style={[styles.divider, { backgroundColor: themeColors.border }]} />
 
           <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
             <View style={styles.menuItemLeft}>
-              <Ionicons
-                name="shield-checkmark-outline"
-                size={20}
-                color={colors.secondary}
-              />
+              <Ionicons name="shield-checkmark-outline" size={20} color={colors.secondary} />
               <Text style={[styles.menuItemText, { color: themeColors.text }]}>
                 Security & Privacy
               </Text>
             </View>
-            <Ionicons
-              name="chevron-forward"
-              size={20}
-              color={themeColors.textSecondary}
-            />
+            <Ionicons name="chevron-forward" size={20} color={themeColors.textSecondary} />
           </TouchableOpacity>
-        </View>
-
-        {/* ===== PREFERENCES SECTION ===== */}
-        <View
-          style={[
-            styles.section,
-            {
-              backgroundColor: themeColors.surface,
-              borderColor: themeColors.border,
-            },
-          ]}
-        >
-          <Text style={[styles.sectionTitle, { color: themeColors.accent }]}>
-            Preferences
-          </Text>
-
-          <Text style={[styles.label, { color: themeColors.textSecondary }]}>
-            App Language
-          </Text>
-          <View style={styles.languageContainer}>
-            {languages.map((language) => (
-              <TouchableOpacity
-                key={language}
-                style={[
-                  styles.languageOption,
-                  {
-                    backgroundColor:
-                      selectedLanguage === language
-                        ? themeColors.primary
-                        : themeColors.surfaceTertiary,
-                  },
-                ]}
-                onPress={() => handleLanguageSelect(language)}
-                activeOpacity={0.7}
-              >
-                <Text
-                  style={[
-                    styles.languageText,
-                    {
-                      color:
-                        selectedLanguage === language
-                          ? colors['on-primary']
-                          : themeColors.text,
-                    },
-                  ]}
-                >
-                  {language}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
         </View>
 
         {/* ===== APPEARANCE SECTION ===== */}
@@ -421,60 +322,36 @@ const SettingsScreen = ({ navigation }) => {
 
           <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
             <View style={styles.menuItemLeft}>
-              <Ionicons
-                name="help-buoy-outline"
-                size={20}
-                color={colors.secondary}
-              />
+              <Ionicons name="help-buoy-outline" size={20} color={colors.secondary} />
               <Text style={[styles.menuItemText, { color: themeColors.text }]}>
                 Help Center
               </Text>
             </View>
-            <Ionicons
-              name="chevron-forward"
-              size={20}
-              color={themeColors.textSecondary}
-            />
+            <Ionicons name="chevron-forward" size={20} color={themeColors.textSecondary} />
           </TouchableOpacity>
 
           <View style={[styles.divider, { backgroundColor: themeColors.border }]} />
 
           <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
             <View style={styles.menuItemLeft}>
-              <Ionicons
-                name="document-text-outline"
-                size={20}
-                color={colors.secondary}
-              />
+              <Ionicons name="document-text-outline" size={20} color={colors.secondary} />
               <Text style={[styles.menuItemText, { color: themeColors.text }]}>
                 Terms of Service
               </Text>
             </View>
-            <Ionicons
-              name="chevron-forward"
-              size={20}
-              color={themeColors.textSecondary}
-            />
+            <Ionicons name="chevron-forward" size={20} color={themeColors.textSecondary} />
           </TouchableOpacity>
 
           <View style={[styles.divider, { backgroundColor: themeColors.border }]} />
 
           <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
             <View style={styles.menuItemLeft}>
-              <Ionicons
-                name="shield-outline"
-                size={20}
-                color={colors.secondary}
-              />
+              <Ionicons name="shield-outline" size={20} color={colors.secondary} />
               <Text style={[styles.menuItemText, { color: themeColors.text }]}>
                 Privacy Policy
               </Text>
             </View>
-            <Ionicons
-              name="chevron-forward"
-              size={20}
-              color={themeColors.textSecondary}
-            />
+            <Ionicons name="chevron-forward" size={20} color={themeColors.textSecondary} />
           </TouchableOpacity>
         </View>
 
@@ -495,9 +372,7 @@ const SettingsScreen = ({ navigation }) => {
         </Text>
       </ScrollView>
 
-      {/* ===== EXIT CONFIRM MODAL =====
-          Same rounded-card + icon-circle shape as the Result/History
-          confirm modals, tinted in error red since exiting is destructive. */}
+      {/* ===== EXIT CONFIRM MODAL ===== */}
       <Modal
         visible={exitConfirmVisible}
         transparent
@@ -553,7 +428,6 @@ const styles = StyleSheet.create({
     flex: 1,
     ...(Platform.OS === 'web' ? { height: '100vh', overflow: 'hidden' } : {}),
   },
-  // ===== HEADER STYLES =====
   header: {
     width: '100%',
     minHeight: 56,
@@ -582,7 +456,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
   },
-  // Profile Section
   profileSection: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -632,7 +505,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.5,
   },
-  // Section
   section: {
     borderRadius: 16,
     padding: 16,
@@ -650,7 +522,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     letterSpacing: 0.5,
   },
-  // Menu Items
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -670,29 +541,6 @@ const styles = StyleSheet.create({
     height: 1,
     marginVertical: 2,
   },
-  // Language
-  label: {
-    fontSize: 13,
-    fontWeight: '500',
-    marginBottom: 8,
-  },
-  languageContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  languageOption: {
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  languageText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  // Switch
   switchRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -707,7 +555,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 1,
   },
-  // Exit Button
   exitButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -728,10 +575,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
   },
-  // ===== EXIT CONFIRM MODAL =====
-  // Same card shape/proportions as the Result/History confirm & success
-  // modals: rounded-24 card, centered icon circle, title, body, full-width
-  // pill action button, plain-text cancel underneath.
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(44, 22, 14, 0.5)',

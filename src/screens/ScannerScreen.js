@@ -1,5 +1,5 @@
 ﻿// screens/ScannerScreen.js
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as Haptics from 'expo-haptics';
 import Toast from 'react-native-toast-message';
+import { useFocusEffect } from '@react-navigation/native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -36,18 +37,16 @@ const fetchWithTimeout = (url, options = {}, timeout = 10000) => {
   });
 };
 
-const ScannerScreen = ({ navigation }) => {
+const ScannerScreen = ({ navigation, route }) => {
   const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [isApiReady, setIsApiReady] = useState(false);
   const [apiCheckDone, setApiCheckDone] = useState(false);
   const [flashEnabled, setFlashEnabled] = useState(false);
   
-  // Camera Permission
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef(null);
 
-  // Animation values
   const scanLineAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -56,6 +55,31 @@ const ScannerScreen = ({ navigation }) => {
     startPulseAnimation();
     checkApiHealth();
   }, []);
+
+  // ===== FIX: ALWAYS RESET TO BLANK WHEN FOCUSED =====
+  useFocusEffect(
+    useCallback(() => {
+      // 1. Reset immediately when the screen is focused
+      setImage(null);
+      setLoading(false);
+      setFlashEnabled(false);
+
+      // 2. Also check if ResultScreen sent a specific "clear" request
+      if (route.params?.clearImage) {
+        // Clear the param so it doesn't continuously reset future scans
+        navigation.setParams({ clearImage: undefined });
+      }
+
+      // 3. Also reset when losing focus (leaving to Home/Result)
+      const unsubscribe = navigation.addListener('blur', () => {
+        setImage(null);
+        setLoading(false);
+        setFlashEnabled(false);
+      });
+
+      return unsubscribe;
+    }, [navigation, route.params?.clearImage])
+  );
 
   const checkApiHealth = async () => {
     try {
@@ -73,7 +97,6 @@ const ScannerScreen = ({ navigation }) => {
   };
 
   const startScanLineAnimation = () => {
-    // FIX: Use translateY instead of top percentage so it works with useNativeDriver: true
     scanLineAnim.setValue(0);
     Animated.loop(
       Animated.sequence([
@@ -205,18 +228,28 @@ const ScannerScreen = ({ navigation }) => {
     }
   };
 
+  // Remove Image function
+  const removeImage = () => {
+    setImage(null);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Toast.show({
+      type: 'success',
+      text1: 'Image Removed',
+      text2: 'You can take a new photo or upload again.',
+      visibilityTime: 1500,
+    });
+  };
+
   const scanLineTranslate = scanLineAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [-140, 140], // Translates from top to bottom within the 280 frame
+    outputRange: [-140, 140], 
   });
 
   if (!permission) {
-    // Camera permissions are still loading
     return <View style={styles.container} />;
   }
 
   if (!permission.granted) {
-    // Camera permissions are not granted yet
     return (
       <View style={styles.permissionContainer}>
         <Ionicons name="camera-outline" size={60} color="#88D982" />
@@ -230,8 +263,7 @@ const ScannerScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      
-      {/* Compressed Top Bar */}
+      {/* Top Bar */}
       <View style={styles.topBar}>
         <TouchableOpacity style={styles.topControlBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
           <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
@@ -240,33 +272,43 @@ const ScannerScreen = ({ navigation }) => {
         <View style={{ width: 40 }} />
       </View>
 
-      {/* Main Camera View */}
-      <View style={styles.cameraContainer}>
-        {image ? (
-          // Show captured/picked image for analysis
-          <Image source={{ uri: image }} style={styles.previewImage} resizeMode="cover" />
-        ) : (
-          // Live Camera View
-          <CameraView
-            ref={cameraRef}
-            style={styles.camera}
-            facing="back"
-            enableTorch={flashEnabled}
-          />
-        )}
+      {/* Main Content - Camera in Card */}
+      <View style={styles.mainContent}>
         
-        {/* Dark Overlay */}
-        <View style={styles.cameraOverlay} />
+        {/* Camera / Image Card */}
+        <View style={styles.cameraCard}>
+          {image ? (
+            <Image source={{ uri: image }} style={styles.previewImage} resizeMode="cover" />
+          ) : (
+            <CameraView
+              ref={cameraRef}
+              style={styles.camera}
+              facing="back"
+              enableTorch={flashEnabled}
+            />
+          )}
 
-        {/* Scan Frame (Centered) */}
-        <View style={styles.scanFrameContainer}>
-          <View style={styles.scanFrame}>
-            <View style={styles.cornerTL} />
-            <View style={styles.cornerTR} />
-            <View style={styles.cornerBL} />
-            <View style={styles.cornerBR} />
-            <Animated.View style={[styles.scanLine, { transform: [{ translateY: scanLineTranslate }] }]} />
-            <Animated.View style={[styles.pulseRing, { transform: [{ scale: pulseAnim }] }]} />
+          {/* Remove Button (Only appears when image is selected) */}
+          {image && !loading && (
+            <TouchableOpacity
+              style={styles.removeButton}
+              onPress={removeImage}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="close" size={20} color="#FFFFFF" />
+            </TouchableOpacity>
+          )}
+
+          {/* Scan Frame */}
+          <View style={styles.scanFrameContainer}>
+            <View style={styles.scanFrame}>
+              <View style={styles.cornerTL} />
+              <View style={styles.cornerTR} />
+              <View style={styles.cornerBL} />
+              <View style={styles.cornerBR} />
+              <Animated.View style={[styles.scanLine, { transform: [{ translateY: scanLineTranslate }] }]} />
+              <Animated.View style={[styles.pulseRing, { transform: [{ scale: pulseAnim }] }]} />
+            </View>
           </View>
         </View>
 
@@ -280,8 +322,8 @@ const ScannerScreen = ({ navigation }) => {
           </View>
         )}
 
-        {/* Compressed Bottom Controls */}
-        <View style={styles.bottomControls}>
+        {/* Controls */}
+        <View style={styles.controlsContainer}>
           <TouchableOpacity style={styles.galleryButton} onPress={pickImage} activeOpacity={0.7}>
             <Ionicons name="images-outline" size={26} color="#FFFFFF" />
           </TouchableOpacity>
@@ -294,23 +336,22 @@ const ScannerScreen = ({ navigation }) => {
             <Ionicons name={flashEnabled ? "flash" : "flash-outline"} size={26} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
-      </View>
 
-      {/* Analyze Button (Only shows when image is present) */}
-      {image && !loading && (
-        <TouchableOpacity
-          style={[styles.analyzeButton, !isApiReady && styles.analyzeButtonDisabled]}
-          onPress={analyzeImage}
-          activeOpacity={0.85}
-          disabled={!isApiReady}
-        >
-          <Ionicons name="scan-outline" size={20} color="#FFFFFF" />
-          <Text style={styles.analyzeButtonText}>
-            {isApiReady ? 'Analyze Leaf' : 'Waiting for Server...'}
-          </Text>
-        </TouchableOpacity>
-      )}
-      
+        {/* Analyze Button */}
+        {image && !loading && (
+          <TouchableOpacity
+            style={[styles.analyzeButton, !isApiReady && styles.analyzeButtonDisabled]}
+            onPress={analyzeImage}
+            activeOpacity={0.85}
+            disabled={!isApiReady}
+          >
+            <Ionicons name="scan-outline" size={20} color="#FFFFFF" />
+            <Text style={styles.analyzeButtonText}>
+              {isApiReady ? 'Analyze Leaf' : 'Waiting for Server...'}
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
     </SafeAreaView>
   );
 };
@@ -318,12 +359,11 @@ const ScannerScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#0A0A0A', 
   },
-  // Permission view styles
   permissionContainer: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#0A0A0A',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -346,14 +386,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   
-  // Compressed Header
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingVertical: 12,
+    backgroundColor: '#0A0A0A',
     zIndex: 10,
   },
   topControlBtn: {
@@ -368,37 +407,65 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   
-  // Camera & Overlays
-  cameraContainer: {
+  mainContent: {
     flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  
+  cameraCard: {
+    width: width - 40,
+    height: height * 0.55, 
+    borderRadius: 24,
+    overflow: 'hidden',
+    backgroundColor: '#000',
+    borderWidth: 1,
+    borderColor: 'rgba(136, 217, 130, 0.3)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
     position: 'relative',
   },
   camera: {
-    flex: 1,
+    width: '100%',
+    height: '100%',
   },
   previewImage: {
     width: '100%',
     height: '100%',
   },
-  cameraOverlay: {
+  
+  // Remove Button Style
+  removeButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 20,
+  },
+  
+  scanFrameContainer: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.1)',
-  },
-  scanFrameContainer: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
   },
   scanFrame: {
-    width: 280,
-    height: 280,
-    borderRadius: 24,
+    width: 220, 
+    height: 220,
+    borderRadius: 16,
     borderWidth: 2,
     borderColor: 'rgba(136, 217, 130, 0.5)',
     justifyContent: 'center',
@@ -469,16 +536,13 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: 'rgba(136, 217, 130, 0.1)',
-    borderRadius: 24,
+    borderRadius: 16,
   },
   
-  // Compressed Bottom Controls
   statusContainer: {
     position: 'absolute',
-    bottom: 140,
-    left: 20,
-    right: 20,
-    alignItems: 'center',
+    top: '50%',
+    marginTop: 20,
   },
   statusHeader: {
     flexDirection: 'row',
@@ -492,26 +556,29 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     textTransform: 'uppercase',
   },
-  bottomControls: {
-    position: 'absolute',
-    bottom: 30,
-    left: 0,
-    right: 0,
+  
+  controlsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-evenly',
     alignItems: 'center',
+    width: '100%',
+    marginTop: 30,
   },
   galleryButton: {
     width: 48,
     height: 48,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 24,
   },
   flashButton: {
     width: 48,
     height: 48,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 24,
   },
   shutterButton: {
     width: 78,
@@ -530,17 +597,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   
-  // Analyze Button
   analyzeButton: {
-    position: 'absolute',
-    bottom: 120,
-    left: 20,
-    right: 20,
+    marginTop: 20,
+    width: '100%',
+    maxWidth: width - 40,
     backgroundColor: '#2E7D32',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
+    paddingVertical: 16,
     borderRadius: 12,
     gap: 10,
   },

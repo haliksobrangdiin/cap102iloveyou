@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+// HomeScreen.js
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,6 +13,7 @@ import {
   Animated,
   Modal,
   FlatList,
+  RefreshControl, // <--- NEW IMPORT
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,8 +28,7 @@ import weatherImage from '../assets/weather.png';
 import marketImage from '../assets/market.png';
 import alertsImage from '../assets/alerts.png';
 
-// ===== STATIC CONTENT (moved outside the component so it isn't recreated
-// on every render - none of this depends on HomeScreen's state) =====
+// ===== STATIC CONTENT =====
 const weatherAlerts = [
   {
     id: '1',
@@ -105,17 +106,6 @@ const getDaysInMonth = (month, year) => new Date(year, month + 1, 0).getDate();
 const getFirstDayOfMonth = (month, year) => new Date(year, month, 1).getDay();
 
 // ===== WEATHER ALERT MODAL =====
-// Defined OUTSIDE HomeScreen so its component identity stays stable across
-// HomeScreen re-renders. Previously this was declared inside HomeScreen's
-// function body, which meant every re-render (including the one triggered
-// by changing the calendar month) created a brand new WeatherAlertModal
-// function/component. React saw that as a different component type at the
-// same position in the tree, so it unmounted the old <Modal> and mounted a
-// fresh one - which replayed the "slide" entrance animation, making it look
-// like the modal was popping up again every time the month changed.
-//
-// The calendar's own selectedDate state now also lives here instead of in
-// HomeScreen, so navigating months never touches HomeScreen's state at all.
 const WeatherAlertModal = ({ visible, onClose }) => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const currentMonth = selectedDate.getMonth();
@@ -333,6 +323,9 @@ const HomeScreen = ({ navigation }) => {
     scannedToday: [true, true, true, true, true, false, false], // Mon-Sun
   });
 
+  // ===== NEW: REFRESH STATE =====
+  const [refreshing, setRefreshing] = useState(false);
+
   const startPulse = () => {
     Animated.sequence([
       Animated.timing(scanScale, {
@@ -351,6 +344,27 @@ const HomeScreen = ({ navigation }) => {
   React.useEffect(() => {
     startPulse();
   }, []);
+
+  // ===== NEW: PULL TO REFRESH FUNCTION =====
+  const handleRefresh = () => {
+    setRefreshing(true);
+    
+    // Simulate network/data fetching (e.g., fetching latest weather or scan history)
+    // You can replace this with your actual API calls.
+    setTimeout(() => {
+      // Optional: Update your data here
+      setStreakData({
+        count: 5,
+        scannedToday: [true, true, true, true, true, false, false],
+      });
+      
+      // Add a haptic success when done
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      
+      // Stop the refresh spinner
+      setRefreshing(false);
+    }, 1500); // 1.5-second simulated delay
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -379,6 +393,17 @@ const HomeScreen = ({ navigation }) => {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        // ===== NEW: REFRESH CONTROL PROPS =====
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={['#0D631B']} // Android spinner color
+            tintColor="#0D631B"   // iOS spinner color
+            title="Refreshing..."
+            titleColor="#0D631B"
+          />
+        }
       >
         {/* Greeting & Weather */}
         <View style={styles.greetingSection}>
@@ -1290,4 +1315,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default HomeScreen;
+export default HomeScreen;  

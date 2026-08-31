@@ -21,6 +21,8 @@ export default function MainTabs() {
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Chatbot" component={ChatbotScreen} />
+      
+      {/* Scanner Stack - Hidden entirely (Handles Scanner + Result internally) */}
       <Tab.Screen 
         name="Scanner" 
         component={ScannerStack}
@@ -28,8 +30,18 @@ export default function MainTabs() {
           tabBarStyle: { display: 'none' },
         }}
       />
+      
       <Tab.Screen name="History" component={HistoryScreen} />
-      <Tab.Screen name="Settings" component={SettingsScreen} />
+      
+      {/* Settings - Hidden entirely */}
+      <Tab.Screen 
+        name="Settings" 
+        component={SettingsScreen}
+        options={{
+          tabBarStyle: { display: 'none' },
+        }}
+      />
+      
       {/* Marketplace - hidden from tab bar */}
       <Tab.Screen 
         name="Marketplace" 
@@ -40,4 +52,4 @@ export default function MainTabs() {
       />
     </Tab.Navigator>
   );
-}
+} 

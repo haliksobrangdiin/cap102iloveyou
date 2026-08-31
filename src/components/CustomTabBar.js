@@ -49,22 +49,22 @@ export default function CustomTabBar({ state, navigation, descriptors }) {
     Scanner: { icon: 'scan-outline', activeIcon: 'scan', label: 'Scan Leaves', isCenter: true },
     History: { icon: 'time-outline', activeIcon: 'time', label: 'Scan History' },
     Settings: { icon: 'settings-outline', activeIcon: 'settings', label: 'Settings' },
-    // Marketplace has no tab button (tabBarButton: () => null in MainTabs.js)
-    // but it's still a registered route, so it still shows up in state.routes.
-    // Mapping it here (and marking it hidden) stops the tab bar from crashing
-    // when it tries to look up an icon/label for it.
     Marketplace: { icon: 'storefront-outline', activeIcon: 'storefront', label: 'Marketplace', hidden: true },
   };
 
   const currentRoute = state.routes[state.index];
-
-  // With a custom tabBar component, React Navigation no longer auto-hides the
-  // bar when a screen calls navigation.setOptions({ tabBarStyle: { display: 'none' } })
-  // (e.g. ResultScreen hiding the bar while its confirm modal is open/behind it).
-  // That option is still stored on the descriptor - we just have to read it
-  // ourselves and bail out of rendering when it says 'none'.
   const { options } = descriptors[currentRoute.key];
+
+  // 1. Check if tabBarStyle is explicitly hidden
   if (options?.tabBarStyle?.display === 'none') {
+    return null;
+  }
+
+  // 2. Scan nested stack state
+  const nestedState = currentRoute.state;
+  const activeNestedRouteName = nestedState?.routes[nestedState.index]?.name;
+
+  if (currentRoute.name === 'Scanner' && (activeNestedRouteName === 'Scanner' || activeNestedRouteName === 'Result')) {
     return null;
   }
 
@@ -74,8 +74,6 @@ export default function CustomTabBar({ state, navigation, descriptors }) {
         const isFocused = state.index === index;
         const config = routeConfig[route.name];
 
-        // Skip rendering for hidden routes (e.g. Marketplace) or any route
-        // that isn't mapped in routeConfig yet, instead of crashing.
         if (!config || config.hidden) {
           return null;
         }
@@ -143,7 +141,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 999,
-    // Drop shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.12,
@@ -183,7 +180,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 4,
     borderColor: colors['surface-container-lowest'],
-    // FAB drop shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
