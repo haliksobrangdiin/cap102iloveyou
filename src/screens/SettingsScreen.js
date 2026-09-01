@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
+import { supabase } from '../utils/supabaseClient';
 
 const colors = {
   surface: '#FFF8F6',
@@ -87,35 +88,27 @@ const SettingsScreen = ({ navigation }) => {
     setExitConfirmVisible(false);
   };
 
-  const confirmExit = () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setExitConfirmVisible(false);
+  const confirmExit = async () => {
+  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  setExitConfirmVisible(false);
+  
+  try {
+    const { error } = await supabase.auth.signOut();
+    
+    if (error) {
+      console.error('Supabase logout error:', error);
+    } else {
+      console.log('✅ Successfully logged out');
+    }
+  } catch (error) {
+    console.error('Logout error:', error);
+  } finally {
     navigation.reset({
       index: 0,
       routes: [{ name: 'Onboarding' }],
     });
-  };
-
-  const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      setProfileImage(result.assets[0].uri);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    }
-  };
-
+  }
+};
   const themeColors = {
     background: isDarkMode ? '#1A1A1A' : colors.surface,
     surface: isDarkMode ? '#2C2C2C' : colors['surface-container-lowest'],
