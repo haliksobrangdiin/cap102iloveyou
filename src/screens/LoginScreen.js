@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { supabase } from '../utils/supabaseClient';
 
 const colors = {
   surface: '#FFF8F6',
@@ -60,7 +61,7 @@ const CustomModal = ({ visible, onClose, title, message, type = 'success', onCon
     if (onConfirm) {
       setTimeout(() => {
         onConfirm();
-      }, 1000);
+      }, 300);
     }
   };
 
@@ -119,26 +120,63 @@ const LoginScreen = ({ navigation }) => {
 
   const closeModal = () => setModalVisible(false);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email || !password) {
-      showModal('Error', 'Please fill in all fields.', 'error');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      showModal('Missing Information', 'Please enter both email and password.', 'warning');
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      showModal('Error', 'Please enter a valid email address.', 'error');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      showModal('Invalid Email', 'Please enter a valid email address.', 'warning');
       return;
     }
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsLoading(true);
 
-    setTimeout(() => {
+    try {
+      console.log('🔍 Attempting login with:', email.trim());
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: password,
+      });
+
+      if (error) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        
+        let message = 'An error occurred during login.';
+        if (error.message.includes('Invalid login credentials')) {
+          message = 'Invalid email or password. Please try again.';
+        } else if (error.message.includes('Email not confirmed')) {
+          message = 'Please confirm your email address before logging in.';
+        }
+        
+        console.error('❌ Login error:', error.message);
+        showModal('Error', message, 'error');
+      } else {
+        console.log('✅ Login successful!');
+        console.log('Session:', data.session ? 'created' : 'none');
+        console.log('User:', data.user?.email);
+        
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        showModal(
+          'Welcome Back! 🎉',
+          'You have successfully logged in to RootCare.',
+          'success',
+          () => navigation.replace('MainTabs')
+        );
+      }
+    } catch (error) {
+      console.error('❌ Login exception:', error);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      showModal('Error', 'An unexpected error occurred. Please try again.', 'error');
+    } finally {
       setIsLoading(false);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      showModal('Welcome Back! 🎉', 'You have successfully logged in to RootCare.', 'success', () => navigation.replace('MainTabs'));
-    }, 1500);
+    }
   };
 
   const handleGuestLogin = () => {
@@ -154,9 +192,45 @@ const LoginScreen = ({ navigation }) => {
     );
   };
 
-  const handleForgotPassword = () => {
+  const handleForgotPassword = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    showModal('Reset Password', 'A password reset link will be sent to your email address.', 'success', () => closeModal());
+    
+    if (!email) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      showModal('Email Required', 'Please enter your email address first.', 'warning');
+      return;
+    }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      showModal('Invalid Email', 'Please enter a valid email address.', 'warning');
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
+      
+      if (error) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        showModal('Error', 'Failed to send password reset email. Please try again.', 'error');
+      } else {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        showModal(
+          'Password Reset Sent',
+          'Check your email for password reset instructions.',
+          'success',
+          () => closeModal()
+        );
+      }
+    } catch (error) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      showModal('Error', 'An unexpected error occurred. Please try again.', 'error');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleRegister = () => {
@@ -258,10 +332,6 @@ const LoginScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* 
-        FINAL FIX: KeyboardAvoidingView only on iOS. 
-        Removed onBlur handlers to stop Android's native "immediate blur" bug.
-      */}
       {Platform.OS === 'ios' ? (
         <KeyboardAvoidingView behavior="padding" style={styles.keyboardView}>
           <ScrollView 

@@ -1,5 +1,5 @@
 // screens/RegisterScreen.js
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { supabase } from '../utils/supabaseClient';
 
 const colors = {
   surface: '#FFF8F6',
@@ -410,16 +411,87 @@ const RegisterScreen = ({ navigation }) => {
     return true;
   }, [formData, isTermsChecked]);
 
-  const handleRegister = useCallback(() => {
+  // UPDATED: handleRegister now uses Supabase
+  const handleRegister = useCallback(async () => {
     if (!validateForm()) return;
+    
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+
+    try {
+      console.log('🔍 Attempting registration with:', formData.email.trim());
+      
+      // Step 1: Sign up with Supabase
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: formData.email.trim(),
+        password: formData.password,
+      });
+
+      if (authError) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        let message = 'Registration failed.';
+        if (authError.message.includes('already registered')) {
+          message = 'This email is already registered. Please login instead.';
+        } else if (authError.message.includes('rate limit')) {
+          message = 'Too many attempts. Please wait a few minutes.';
+        }
+        showModal('Error', message, 'error');
+        return;
+      }
+
+      console.log('✅ Auth user created:', authData.user?.id);
+
+      // Step 2: Create profile
+      if (authData.user) {
+        const birthDate = formData.year && formData.month && formData.day 
+          ? `${formData.year}-${formData.month.padStart(2, '0')}-${formData.day.padStart(2, '0')}`
+          : null;
+
+        const profileData = {
+          id: authData.user.id,
+          email: formData.email.trim(),
+          display_name: `${formData.firstName} ${formData.lastName}`.trim(),
+          first_name: formData.firstName,
+          middle_name: noMiddleName ? null : formData.middleName,
+          last_name: formData.lastName,
+          suffix: formData.suffix || null,
+          sex: formData.sex,
+          birth_date: birthDate,
+          address: formData.address,
+          province: formData.province,
+          city: formData.city,
+          barangay: formData.barangay,
+          zip_code: formData.zipCode || null,
+          phone: formData.phone || null,
+        };
+
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert(profileData);
+
+        if (profileError) {
+          console.error('❌ Profile creation error:', profileError.message);
+          // User is created but profile failed - still show success
+        } else {
+          console.log('✅ Profile created successfully');
+        }
+      }
+
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      showModal('🎉 Registration Successful!', 'Your account has been created successfully. Please login to continue.', 'success', () => navigation.replace('Login'));
-    }, 1500);
-  }, [validateForm, navigation]);
+      showModal(
+        '🎉 Registration Successful!',
+        'Your account has been created successfully. Please login to continue.',
+        'success',
+        () => navigation.replace('Login')
+      );
+    } catch (error) {
+      console.error('❌ Registration exception:', error);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      showModal('Error', 'An unexpected error occurred. Please try again.', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [validateForm, formData, noMiddleName, navigation]);
 
   const handleLogin = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -521,7 +593,6 @@ const RegisterScreen = ({ navigation }) => {
                 {fieldErrors.sex && <Text style={styles.errorText}>Please select your sex</Text>}
               </View>
 
-              {/* Date of Birth - Fixed Layout with Solid Label */}
               <View style={styles.inputWrapper}>
                 <TouchableOpacity style={styles.dateInputContainer} onPress={() => setIsCalendarVisible(true)} activeOpacity={0.7}>
                   <View style={styles.dateIconContainer}>

@@ -13,7 +13,7 @@ import {
   Animated,
   Modal,
   FlatList,
-  RefreshControl, // <--- NEW IMPORT
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -148,7 +148,6 @@ const WeatherAlertModal = ({ visible, onClose }) => {
           ]}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            // Select date
           }}
         >
           <Text style={[
@@ -178,7 +177,6 @@ const WeatherAlertModal = ({ visible, onClose }) => {
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
-          {/* Modal Header */}
           <View style={styles.modalHeader}>
             <View style={styles.modalHeaderLeft}>
               <Ionicons name="cloud-outline" size={24} color="#0D631B" />
@@ -199,7 +197,6 @@ const WeatherAlertModal = ({ visible, onClose }) => {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.modalScrollContent}
           >
-            {/* Weather Summary */}
             <View style={styles.weatherSummary}>
               <View style={styles.weatherSummaryLeft}>
                 <Ionicons name="sunny" size={32} color="#F59E0B" />
@@ -214,7 +211,6 @@ const WeatherAlertModal = ({ visible, onClose }) => {
               </View>
             </View>
 
-            {/* ===== CALENDAR SECTION ===== */}
             <View style={styles.calendarSection}>
               <View style={styles.calendarHeader}>
                 <TouchableOpacity onPress={() => changeMonth(-1)}>
@@ -228,7 +224,6 @@ const WeatherAlertModal = ({ visible, onClose }) => {
                 </TouchableOpacity>
               </View>
 
-              {/* Calendar Grid */}
               <View style={styles.calendarGrid}>
                 {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => (
                   <View key={day} style={styles.calendarDayHeader}>
@@ -250,7 +245,6 @@ const WeatherAlertModal = ({ visible, onClose }) => {
               </View>
             </View>
 
-            {/* ===== FERTILIZER TIPS ===== */}
             <View style={styles.sectionContainer}>
               <View style={styles.sectionHeader}>
                 <Ionicons name="flask-outline" size={22} color="#0D631B" />
@@ -268,7 +262,6 @@ const WeatherAlertModal = ({ visible, onClose }) => {
               ))}
             </View>
 
-            {/* ===== ROOT CROP CARE TIPS ===== */}
             <View style={styles.sectionContainer}>
               <View style={styles.sectionHeader}>
                 <Ionicons name="leaf-outline" size={22} color="#0D631B" />
@@ -285,7 +278,6 @@ const WeatherAlertModal = ({ visible, onClose }) => {
               </View>
             </View>
 
-            {/* Weather Alerts */}
             <View style={styles.sectionContainer}>
               <View style={styles.sectionHeader}>
                 <Ionicons name="warning-outline" size={22} color="#F97316" />
@@ -318,65 +310,66 @@ const HomeScreen = ({ navigation }) => {
   const scanScale = useState(new Animated.Value(1))[0];
   const [weatherModalVisible, setWeatherModalVisible] = useState(false);
   
-  // ===== NEW: USER PROFILE STATE =====
   const [displayName, setDisplayName] = useState('RootCare');
   const [profileLoading, setProfileLoading] = useState(true);
 
-  // ===== SCAN STREAK DATA =====
   const [streakData, setStreakData] = useState({
     count: 5,
     scannedToday: [true, true, true, true, true, false, false],
   });
 
-  // ===== REFRESH STATE =====
   const [refreshing, setRefreshing] = useState(false);
 
-  // ===== NEW: FETCH USER PROFILE =====
   const fetchUserProfile = async () => {
-  try {
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    
-    if (userError) {
-      // Don't log as error if no session - this is expected for guest mode
-      if (userError.message.includes('Auth session missing')) {
-        console.log('No active session (guest mode)');
-      } else {
-        console.error('Error fetching user:', userError.message);
-      }
-      setDisplayName('RootCare');
-      return;
-    }
-    
-    if (user) {
-      // Fetch profile from profiles table
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('display_name, first_name, last_name')
-        .eq('id', user.id)
-        .single();
+    try {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      if (profileError) {
-        console.error('Error fetching profile:', profileError.message);
+      if (sessionError || !session) {
+        console.log('No active session (guest mode)');
         setDisplayName('RootCare');
-      } else if (profile) {
-        const name = profile.display_name || 
-                    `${profile.first_name || ''} ${profile.last_name || ''}`.trim() ||
-                    'RootCare';
-        setDisplayName(name);
+        setProfileLoading(false);
+        return;
+      }
+      
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError) {
+        if (!userError.message.includes('Auth session missing')) {
+          console.error('Error fetching user:', userError.message);
+        }
+        setDisplayName('RootCare');
+        setProfileLoading(false);
+        return;
+      }
+      
+      if (user) {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('display_name, first_name, last_name')
+          .eq('id', user.id)
+          .single();
+        
+        if (profileError) {
+          console.error('Error fetching profile:', profileError.message);
+          setDisplayName('RootCare');
+        } else if (profile) {
+          const name = profile.display_name || 
+                      `${profile.first_name || ''} ${profile.last_name || ''}`.trim() ||
+                      'RootCare';
+          setDisplayName(name);
+        } else {
+          setDisplayName('RootCare');
+        }
       } else {
         setDisplayName('RootCare');
       }
-    } else {
-      // No user logged in (guest mode)
+    } catch (error) {
+      console.error('Unexpected error fetching profile:', error);
       setDisplayName('RootCare');
+    } finally {
+      setProfileLoading(false);
     }
-  } catch (error) {
-    console.error('Unexpected error fetching profile:', error);
-    setDisplayName('RootCare');
-  } finally {
-    setProfileLoading(false);
-  }
-};
+  };
 
   const startPulse = () => {
     Animated.sequence([
@@ -395,17 +388,25 @@ const HomeScreen = ({ navigation }) => {
 
   React.useEffect(() => {
     startPulse();
-    fetchUserProfile(); // Fetch profile on mount
+    fetchUserProfile();
+    
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state changed in HomeScreen:', event);
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+        fetchUserProfile();
+      }
+    });
+    
+    return () => {
+      authListener?.subscription.unsubscribe();
+    };
   }, []);
 
-  // ===== PULL TO REFRESH FUNCTION =====
   const handleRefresh = async () => {
     setRefreshing(true);
     
-    // Fetch fresh profile data
     await fetchUserProfile();
     
-    // Simulate network/data fetching
     setTimeout(() => {
       setStreakData({
         count: 5,
@@ -446,20 +447,19 @@ const HomeScreen = ({ navigation }) => {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        // ===== NEW: REFRESH CONTROL PROPS =====
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            colors={['#0D631B']} // Android spinner color
-            tintColor="#0D631B"   // iOS spinner color
+            colors={['#0D631B']}
+            tintColor="#0D631B"
             title="Refreshing..."
             titleColor="#0D631B"
           />
         }
       >
         {/* Greeting & Weather */}
-           <View style={styles.greetingSection}>
+        <View style={styles.greetingSection}>
           <View style={styles.greetingTextBlock}>
             <Text style={styles.greetingTitle}>
               Good morning, {profileLoading ? 'Farmer' : displayName.split(' ')[0]}!
@@ -546,7 +546,6 @@ const HomeScreen = ({ navigation }) => {
             </ImageBackground>
           </TouchableOpacity>
 
-          {/* Weather Alerts Card - Opens Modal */}
           <TouchableOpacity 
             style={styles.bentoCardWrapper}
             onPress={() => {
@@ -655,7 +654,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF8F6',
     ...(Platform.OS === 'web' ? { height: '100vh', overflow: 'hidden' } : {}),
   },
-  // ========== HEADER ==========
   header: {
     width: '100%',
     backgroundColor: 'rgba(255, 248, 246, 0.95)',
@@ -705,14 +703,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  // ========== SCROLL CONTENT ==========
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 80,
   },
-  // ========== GREETING SECTION ==========
   greetingSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -734,7 +730,6 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: '#40493D',
   },
-  // ========== WEATHER CARD ==========
   weatherCard: {
     borderRadius: 14,
     overflow: 'hidden',
@@ -765,7 +760,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: 'rgba(255, 255, 255, 0.9)',
   },
-  // ========== SCAN CARD ==========
   scanCard: {
     marginBottom: 16,
     borderRadius: 16,
@@ -818,7 +812,6 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: 'rgba(255, 255, 255, 0.85)',
   },
-  // ========== BENTO GRID ==========
   bentoGrid: {
     flexDirection: 'row',
     gap: 12,
@@ -924,7 +917,6 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: 'rgba(255, 255, 255, 0.85)',
   },
-  // ========== SCAN STREAK TRACKER ==========
   streakCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
@@ -992,7 +984,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#707A6C',
   },
-  // ========== ACTIVITY SECTION ==========
   activitySection: {
     marginBottom: 16,
   },
@@ -1049,8 +1040,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#40493D',
   },
-
-  // ========== WEATHER ALERT MODAL ==========
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -1092,7 +1081,6 @@ const styles = StyleSheet.create({
   modalScrollContent: {
     paddingBottom: 20,
   },
-  // Weather Summary
   weatherSummary: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1101,11 +1089,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
   },
   weatherSummaryLeft: {
     flexDirection: 'row',
@@ -1135,17 +1118,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#2C160E',
   },
-  // ===== CALENDAR =====
   calendarSection: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
   },
   calendarHeader: {
     flexDirection: 'row',
@@ -1242,7 +1219,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#40493D',
   },
-  // ===== SECTIONS =====
   sectionContainer: {
     marginBottom: 16,
   },
@@ -1257,17 +1233,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#2C160E',
   },
-  // ===== FERTILIZER TIPS =====
   tipCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 14,
     marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
   },
   tipTitle: {
     fontSize: 14,
@@ -1291,7 +1261,6 @@ const styles = StyleSheet.create({
     color: '#F59E0B',
     fontWeight: '500',
   },
-  // ===== CROP CARE =====
   careGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1302,11 +1271,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 14,
     width: '48%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
   },
   careIcon: {
     fontSize: 24,
@@ -1323,18 +1287,12 @@ const styles = StyleSheet.create({
     color: '#40493D',
     lineHeight: 16,
   },
-  // ===== WEATHER ALERTS =====
   alertItem: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 14,
     marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
     gap: 12,
   },
   alertIconContainer: {
@@ -1370,4 +1328,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default HomeScreen;  
+export default HomeScreen;
