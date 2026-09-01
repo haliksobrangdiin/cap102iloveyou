@@ -1,4 +1,4 @@
-// screens/HistoryScreen.js - Recent Tab Maintained, Others Restore/Delete Only
+// screens/HistoryScreen.js - Saved/Archive Moves to Trash, 30 Days Notice (Fixed UI)
 import React, { useState } from 'react';
 import {
   View,
@@ -176,7 +176,6 @@ const HistoryScreen = ({ navigation }) => {
     setHistoryData(newData);
   };
 
-  // RECENT TAB: Archive 
   const handleArchive = (id) => {
     if (isSelectMode) { toggleSelect(id); return; }
     setConfirmConfig({
@@ -195,13 +194,12 @@ const HistoryScreen = ({ navigation }) => {
     setConfirmModalVisible(true);
   };
 
-  // RECENT TAB: Trash
   const handleTrash = (id) => {
     if (isSelectMode) { toggleSelect(id); return; }
     setConfirmConfig({
       icon: 'trash-outline',
       title: 'Move to Trash',
-      body: 'Move this scan to trash? You can restore it from the Trash tab.',
+      body: 'Move this scan to trash? You can restore it anytime within 30 days.',
       confirmLabel: 'Move to Trash',
       onConfirm: () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -214,7 +212,6 @@ const HistoryScreen = ({ navigation }) => {
     setConfirmModalVisible(true);
   };
 
-  // RESTORE (for Saved, Archived, Trash)
   const handleRestore = (id) => {
     if (isSelectMode) { toggleSelect(id); return; }
     setConfirmConfig({
@@ -233,7 +230,6 @@ const HistoryScreen = ({ navigation }) => {
     setConfirmModalVisible(true);
   };
 
-  // DELETE FOREVER (for Saved, Archived, Trash)
   const handleDeleteForever = (id) => {
     if (isSelectMode) { toggleSelect(id); return; }
     setConfirmConfig({
@@ -251,41 +247,40 @@ const HistoryScreen = ({ navigation }) => {
     setConfirmModalVisible(true);
   };
 
-  // BULK ACTIONS (for Saved, Archived, Trash)
-  const handleBulkRestore = () => {
+  const handleBulkUnsave = () => {
     setConfirmConfig({
-      icon: 'refresh-outline',
-      title: 'Restore Selected',
-      body: `Move ${selectedIds.length} selected scan(s) back to recent?`,
-      confirmLabel: 'Restore',
+      icon: 'bookmark-outline',
+      title: 'Unsave Selected',
+      body: `Remove ${selectedIds.length} selected scan(s) from Saved? They will go back to Recent.`,
+      confirmLabel: 'Unsave',
       onConfirm: () => {
-        const newData = historyData.map(item => selectedIds.includes(item.id) ? { ...item, isDeleted: false, isArchived: false } : item);
+        const newData = historyData.map(item => selectedIds.includes(item.id) ? { ...item, isSaved: false } : item);
         setHistoryData(newData);
         exitSelectMode();
         setConfirmModalVisible(false);
-        showSuccess('Restored!', 'Selected scans have been restored.');
+        showSuccess('Unsaved!', 'Selected scans have been removed from Saved.');
       },
     });
     setConfirmModalVisible(true);
   };
 
-  const handleBulkDelete = () => {
+  const handleBulkTrash = () => {
     setConfirmConfig({
       icon: 'trash-outline',
-      title: 'Delete Selected',
-      body: `Delete ${selectedIds.length} selected scan(s) forever? This action cannot be undone.`,
-      confirmLabel: 'Delete Forever',
+      title: 'Move Selected to Trash',
+      body: `Move ${selectedIds.length} selected scan(s) to trash? They will be deleted after 30 days.`,
+      confirmLabel: 'Move to Trash',
       onConfirm: () => {
-        setHistoryData(prev => prev.filter(item => !selectedIds.includes(item.id)));
+        const newData = historyData.map(item => selectedIds.includes(item.id) ? { ...item, isDeleted: true, isArchived: false } : item);
+        setHistoryData(newData);
         exitSelectMode();
         setConfirmModalVisible(false);
-        showSuccess('Deleted!', 'Selected scans have been permanently deleted.');
+        showSuccess('Moved to Trash!', 'Selected scans have been moved to trash.');
       },
     });
     setConfirmModalVisible(true);
   };
 
-  // BULK ACTIONS (for Recent Only)
   const handleBulkArchive = () => {
     setConfirmConfig({
       icon: 'archive-outline',
@@ -303,18 +298,34 @@ const HistoryScreen = ({ navigation }) => {
     setConfirmModalVisible(true);
   };
 
-  const handleBulkTrash = () => {
+  const handleBulkRestore = () => {
     setConfirmConfig({
-      icon: 'trash-outline',
-      title: 'Trash All Selected',
-      body: `Move ${selectedIds.length} selected scan(s) to trash?`,
-      confirmLabel: 'Move to Trash',
+      icon: 'refresh-outline',
+      title: 'Restore Selected',
+      body: `Move ${selectedIds.length} selected scan(s) back to recent?`,
+      confirmLabel: 'Restore',
       onConfirm: () => {
-        const newData = historyData.map(item => selectedIds.includes(item.id) ? { ...item, isDeleted: true, isArchived: false } : item);
+        const newData = historyData.map(item => selectedIds.includes(item.id) ? { ...item, isDeleted: false, isArchived: false } : item);
         setHistoryData(newData);
         exitSelectMode();
         setConfirmModalVisible(false);
-        showSuccess('Moved to Trash!', 'Selected scans have been moved to trash.');
+        showSuccess('Restored!', 'Selected scans have been restored.');
+      },
+    });
+    setConfirmModalVisible(true);
+  };
+
+  const handleBulkDeleteForever = () => {
+    setConfirmConfig({
+      icon: 'trash-outline',
+      title: 'Delete Selected Forever',
+      body: `Delete ${selectedIds.length} selected scan(s) forever? This action cannot be undone.`,
+      confirmLabel: 'Delete Forever',
+      onConfirm: () => {
+        setHistoryData(prev => prev.filter(item => !selectedIds.includes(item.id)));
+        exitSelectMode();
+        setConfirmModalVisible(false);
+        showSuccess('Deleted!', 'Selected scans have been permanently deleted.');
       },
     });
     setConfirmModalVisible(true);
@@ -381,7 +392,6 @@ const HistoryScreen = ({ navigation }) => {
     );
   };
 
-  // RENDER LIST ITEM (Different buttons per tab)
   const renderListItem = ({ item }) => {
     const isDeleted = item.isDeleted;
     const isSaved = item.isSaved;
@@ -434,7 +444,6 @@ const HistoryScreen = ({ navigation }) => {
             </View>
 
             <View style={styles.actionButtons}>
-              {/* RECENT TAB: Save / Archive */}
               {activeTab === 'recent' && !isDeleted && !isArchived && (
                 <>
                   <TouchableOpacity style={styles.actionButton} onPress={() => handleSave(item.id)}>
@@ -443,10 +452,12 @@ const HistoryScreen = ({ navigation }) => {
                   <TouchableOpacity style={styles.actionButton} onPress={() => handleArchive(item.id)}>
                     <Ionicons name="archive-outline" size={20} color={colors.secondary} />
                   </TouchableOpacity>
+                  <TouchableOpacity style={styles.actionButton} onPress={() => handleTrash(item.id)}>
+                    <Ionicons name="trash-outline" size={20} color={colors.error} />
+                  </TouchableOpacity>
                 </>
               )}
 
-              {/* SAVED TAB: Save / Restore (Archive Disabled) */}
               {activeTab === 'saved' && (
                 <>
                   <TouchableOpacity style={styles.actionButton} onPress={() => handleSave(item.id)}>
@@ -455,13 +466,12 @@ const HistoryScreen = ({ navigation }) => {
                   <TouchableOpacity style={styles.actionButton} onPress={() => handleRestore(item.id)}>
                     <Ionicons name="refresh-outline" size={20} color="#4CAF50" />
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.actionButton} onPress={() => handleDeleteForever(item.id)}>
+                  <TouchableOpacity style={styles.actionButton} onPress={() => handleTrash(item.id)}>
                     <Ionicons name="trash-outline" size={20} color={colors.error} />
                   </TouchableOpacity>
                 </>
               )}
 
-              {/* ARCHIVED TAB: Restore / Delete */}
               {activeTab === 'archived' && (
                 <>
                   <TouchableOpacity style={styles.actionButtonDisabled} disabled>
@@ -470,13 +480,12 @@ const HistoryScreen = ({ navigation }) => {
                   <TouchableOpacity style={styles.actionButton} onPress={() => handleRestore(item.id)}>
                     <Ionicons name="refresh-outline" size={20} color="#4CAF50" />
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.actionButton} onPress={() => handleDeleteForever(item.id)}>
+                  <TouchableOpacity style={styles.actionButton} onPress={() => handleTrash(item.id)}>
                     <Ionicons name="trash-outline" size={20} color={colors.error} />
                   </TouchableOpacity>
                 </>
               )}
 
-              {/* TRASH TAB: Restore / Delete */}
               {activeTab === 'trash' && (
                 <>
                   <TouchableOpacity style={styles.actionButton} onPress={() => handleRestore(item.id)}>
@@ -548,7 +557,6 @@ const HistoryScreen = ({ navigation }) => {
                 <Text style={styles.typeBadgeText}>{item.diseaseType}</Text>
               </View>
               <View style={styles.detailedActionButtons}>
-                {/* RECENT: Save / Archive */}
                 {activeTab === 'recent' && !isDeleted && !isArchived && (
                   <>
                     <TouchableOpacity style={styles.detailedActionButton} onPress={() => handleSave(item.id)}>
@@ -557,10 +565,12 @@ const HistoryScreen = ({ navigation }) => {
                     <TouchableOpacity style={styles.detailedActionButton} onPress={() => handleArchive(item.id)}>
                       <Ionicons name="archive-outline" size={18} color={colors.secondary} />
                     </TouchableOpacity>
+                    <TouchableOpacity style={styles.detailedActionButton} onPress={() => handleTrash(item.id)}>
+                      <Ionicons name="trash-outline" size={18} color={colors.error} />
+                    </TouchableOpacity>
                   </>
                 )}
 
-                {/* SAVED: Save / Restore / Delete */}
                 {activeTab === 'saved' && (
                   <>
                     <TouchableOpacity style={styles.detailedActionButton} onPress={() => handleSave(item.id)}>
@@ -569,13 +579,12 @@ const HistoryScreen = ({ navigation }) => {
                     <TouchableOpacity style={styles.detailedActionButton} onPress={() => handleRestore(item.id)}>
                       <Ionicons name="refresh-outline" size={18} color="#4CAF50" />
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.detailedActionButton} onPress={() => handleDeleteForever(item.id)}>
+                    <TouchableOpacity style={styles.detailedActionButton} onPress={() => handleTrash(item.id)}>
                       <Ionicons name="trash-outline" size={18} color={colors.error} />
                     </TouchableOpacity>
                   </>
                 )}
 
-                {/* ARCHIVED: Restore / Delete */}
                 {activeTab === 'archived' && (
                   <>
                     <TouchableOpacity style={styles.detailedActionButtonDisabled} disabled>
@@ -584,13 +593,12 @@ const HistoryScreen = ({ navigation }) => {
                     <TouchableOpacity style={styles.detailedActionButton} onPress={() => handleRestore(item.id)}>
                       <Ionicons name="refresh-outline" size={18} color="#4CAF50" />
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.detailedActionButton} onPress={() => handleDeleteForever(item.id)}>
+                    <TouchableOpacity style={styles.detailedActionButton} onPress={() => handleTrash(item.id)}>
                       <Ionicons name="trash-outline" size={18} color={colors.error} />
                     </TouchableOpacity>
                   </>
                 )}
 
-                {/* TRASH: Restore / Delete */}
                 {activeTab === 'trash' && (
                   <>
                     <TouchableOpacity style={styles.detailedActionButton} onPress={() => handleRestore(item.id)}>
@@ -765,7 +773,6 @@ const HistoryScreen = ({ navigation }) => {
         </View>
       </View>
 
-      {/* BULK ACTIONS: Only shown based on what tab you are on */}
       {isSelectMode && (
         <View style={styles.bulkActions}>
           {activeTab === 'recent' && (
@@ -781,18 +788,56 @@ const HistoryScreen = ({ navigation }) => {
             </>
           )}
 
-          {(activeTab === 'saved' || activeTab === 'archived' || activeTab === 'trash') && (
+          {activeTab === 'saved' && (
+            <>
+              <TouchableOpacity style={styles.bulkButton} onPress={handleBulkUnsave}>
+                <Ionicons name="bookmark-outline" size={18} color={colors.secondary} />
+                <Text style={styles.bulkButtonText}>Unsave</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.bulkButton} onPress={handleBulkTrash}>
+                <Ionicons name="trash-outline" size={18} color={colors.error} />
+                <Text style={[styles.bulkButtonText, { color: colors.error }]}>Trash</Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          {activeTab === 'archived' && (
             <>
               <TouchableOpacity style={styles.bulkButton} onPress={handleBulkRestore}>
                 <Ionicons name="refresh-outline" size={18} color="#4CAF50" />
                 <Text style={styles.bulkButtonText}>Restore</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.bulkButton} onPress={handleBulkDelete}>
+              <TouchableOpacity style={styles.bulkButton} onPress={handleBulkTrash}>
+                <Ionicons name="trash-outline" size={18} color={colors.error} />
+                <Text style={[styles.bulkButtonText, { color: colors.error }]}>Trash</Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          {activeTab === 'trash' && (
+            <>
+              <TouchableOpacity style={styles.bulkButton} onPress={handleBulkRestore}>
+                <Ionicons name="refresh-outline" size={18} color="#4CAF50" />
+                <Text style={styles.bulkButtonText}>Restore</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.bulkButton} onPress={handleBulkDeleteForever}>
                 <Ionicons name="trash-outline" size={18} color={colors.error} />
                 <Text style={[styles.bulkButtonText, { color: colors.error }]}>Delete</Text>
               </TouchableOpacity>
             </>
           )}
+        </View>
+      )}
+
+      {/* FIXED 30 DAYS NOTICE */}
+      {activeTab === 'trash' && (
+        <View style={styles.trashNoticeWrapper}>
+          <View style={styles.trashNotice}>
+            <Ionicons name="information-circle-outline" size={18} color={colors.error} />
+            <Text style={styles.trashNoticeText}>
+              Items in Trash are automatically deleted after 30 days.
+            </Text>
+          </View>
         </View>
       )}
 
@@ -834,6 +879,28 @@ const styles = StyleSheet.create({
   checkboxContainerDetailed: { position: 'absolute', top: 10, right: 10, zIndex: 5 },
   checkbox: { width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: colors.outline, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
   checkboxActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+
+  trashNoticeWrapper: {
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.md,
+  },
+  trashNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: colors['error-container'],
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+     marginTop: 30,
+    borderRadius: rounded.DEFAULT,
+    gap: spacing.sm,
+  },
+  trashNoticeText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '500',
+    color: colors['on-error-container'],
+    textAlign: 'center',
+  },
 
   toggleContainer: { flexDirection: 'row', backgroundColor: colors['surface-container-low'], margin: spacing.md, borderRadius: rounded.md, padding: spacing.xs },
   toggleButton: { flex: 1, paddingVertical: spacing.sm, alignItems: 'center', borderRadius: rounded.DEFAULT },
