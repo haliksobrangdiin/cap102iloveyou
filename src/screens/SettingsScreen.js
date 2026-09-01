@@ -62,7 +62,7 @@ const SettingsScreen = ({ navigation }) => {
 
   const [exitConfirmVisible, setExitConfirmVisible] = useState(false);
 
-  const [activeModal, setActiveModal] = useState(null); // 'profile' | 'password' | 'security' | 'help' | 'terms' | 'privacy'
+  const [activeModal, setActiveModal] = useState(null);
 
   const [firstName, setFirstName] = useState('Adeola');
   const [middleName, setMiddleName] = useState('');
@@ -89,26 +89,47 @@ const SettingsScreen = ({ navigation }) => {
   };
 
   const confirmExit = async () => {
-  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  setExitConfirmVisible(false);
-  
-  try {
-    const { error } = await supabase.auth.signOut();
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setExitConfirmVisible(false);
     
-    if (error) {
-      console.error('Supabase logout error:', error);
-    } else {
-      console.log('✅ Successfully logged out');
+    try {
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('Supabase logout error:', error);
+      } else {
+        console.log('✅ Successfully logged out');
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Onboarding' }],
+      });
     }
-  } catch (error) {
-    console.error('Logout error:', error);
-  } finally {
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'Onboarding' }],
+  };
+
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
     });
-  }
-};
+
+    if (!result.canceled) {
+      setProfileImage(result.assets[0].uri);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+  };
+
   const themeColors = {
     background: isDarkMode ? '#1A1A1A' : colors.surface,
     surface: isDarkMode ? '#2C2C2C' : colors['surface-container-lowest'],
@@ -146,7 +167,6 @@ const SettingsScreen = ({ navigation }) => {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
           style={styles.modalOverlay}
         >
-          {/* FIX: Slide up from bottom, takes up 90% of screen height */}
           <View style={[styles.modalContainer, { backgroundColor: themeColors.background }]}>
             
             <View style={[styles.modalHeader, { borderBottomColor: themeColors.border }]}>
@@ -165,7 +185,6 @@ const SettingsScreen = ({ navigation }) => {
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
             >
-              {/* ================= EDIT PROFILE ================= */}
               {activeModal === 'profile' && (
                 <>
                   <View style={styles.profileImageContainer}>
@@ -231,7 +250,6 @@ const SettingsScreen = ({ navigation }) => {
                 </>
               )}
 
-              {/* ================= CHANGE PASSWORD ================= */}
               {activeModal === 'password' && (
                 <>
                   <Text style={styles.modalDescription}>Enter your current password and set a new, secure password.</Text>
@@ -291,7 +309,6 @@ const SettingsScreen = ({ navigation }) => {
                 </>
               )}
 
-              {/* ================= SECURITY & PRIVACY ================= */}
               {activeModal === 'security' && (
                 <>
                   <Text style={styles.modalDescription}>Manage how your data is secured and how you interact with RootCare.</Text>
@@ -334,7 +351,6 @@ const SettingsScreen = ({ navigation }) => {
                 </>
               )}
 
-              {/* ================= HELP CENTER ================= */}
               {activeModal === 'help' && (
                 <View>
                   <Text style={styles.modalDescription}>We are here to assist you! Browse our frequently asked questions or contact support.</Text>
@@ -361,7 +377,6 @@ const SettingsScreen = ({ navigation }) => {
                 </View>
               )}
 
-              {/* ================= TERMS OF SERVICE ================= */}
               {activeModal === 'terms' && (
                 <View>
                   <Text style={styles.modalDescription}>Last Updated: January 2024</Text>
@@ -380,7 +395,6 @@ const SettingsScreen = ({ navigation }) => {
                 </View>
               )}
 
-              {/* ================= PRIVACY POLICY ================= */}
               {activeModal === 'privacy' && (
                 <View>
                   <Text style={styles.modalDescription}>Last Updated: January 2024</Text>
@@ -409,7 +423,6 @@ const SettingsScreen = ({ navigation }) => {
       style={[styles.container, { backgroundColor: themeColors.background }]}
       edges={['top']}
     >
-      {/* ===== HEADER ===== */}
       <View style={[styles.header, { backgroundColor: themeColors.background }]}>
         <TouchableOpacity
           style={styles.backButton}
@@ -426,20 +439,10 @@ const SettingsScreen = ({ navigation }) => {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: 40 },
-        ]}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 40 }]}
       >
-        {/* ===== PROFILE SECTION (Clickable) ===== */}
         <TouchableOpacity
-          style={[
-            styles.profileSection,
-            {
-              backgroundColor: themeColors.surface,
-              borderColor: themeColors.border,
-            },
-          ]}
+          style={[styles.profileSection, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}
           onPress={() => setActiveModal('profile')}
           activeOpacity={0.7}
         >
@@ -457,12 +460,7 @@ const SettingsScreen = ({ navigation }) => {
             <Text style={[styles.profileEmail, { color: themeColors.textSecondary }]}>
               adeola@rootcare.farm
             </Text>
-            <View
-              style={[
-                styles.profileBadge,
-                { backgroundColor: themeColors.primary },
-              ]}
-            >
+            <View style={[styles.profileBadge, { backgroundColor: themeColors.primary }]}>
               <Text style={[styles.profileBadgeText, { color: colors['on-primary'] }]}>
                 PREMIUM PLAN
               </Text>
@@ -471,16 +469,7 @@ const SettingsScreen = ({ navigation }) => {
           <Ionicons name="chevron-forward" size={20} color={themeColors.textSecondary} />
         </TouchableOpacity>
 
-        {/* ===== ACCOUNT SECTION ===== */}
-        <View
-          style={[
-            styles.section,
-            {
-              backgroundColor: themeColors.surface,
-              borderColor: themeColors.border,
-            },
-          ]}
-        >
+        <View style={[styles.section, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
           <Text style={[styles.sectionTitle, { color: themeColors.accent }]}>
             Account
           </Text>
@@ -520,16 +509,7 @@ const SettingsScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* ===== APPEARANCE SECTION ===== */}
-        <View
-          style={[
-            styles.section,
-            {
-              backgroundColor: themeColors.surface,
-              borderColor: themeColors.border,
-            },
-          ]}
-        >
+        <View style={[styles.section, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
           <Text style={[styles.sectionTitle, { color: themeColors.accent }]}>
             Appearance
           </Text>
@@ -552,16 +532,7 @@ const SettingsScreen = ({ navigation }) => {
           </View>
         </View>
 
-        {/* ===== NOTIFICATIONS SECTION ===== */}
-        <View
-          style={[
-            styles.section,
-            {
-              backgroundColor: themeColors.surface,
-              borderColor: themeColors.border,
-            },
-          ]}
-        >
+        <View style={[styles.section, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
           <Text style={[styles.sectionTitle, { color: themeColors.accent }]}>
             Notifications
           </Text>
@@ -622,16 +593,7 @@ const SettingsScreen = ({ navigation }) => {
           </View>
         </View>
 
-        {/* ===== SUPPORT & INFO SECTION ===== */}
-        <View
-          style={[
-            styles.section,
-            {
-              backgroundColor: themeColors.surface,
-              borderColor: themeColors.border,
-            },
-          ]}
-        >
+        <View style={[styles.section, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
           <Text style={[styles.sectionTitle, { color: themeColors.accent }]}>
             Support & Info
           </Text>
@@ -671,7 +633,6 @@ const SettingsScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* ===== LOG OUT BUTTON ===== */}
         <TouchableOpacity
           style={[styles.exitButton, { borderColor: themeColors.error }]}
           onPress={handleExit}
@@ -688,7 +649,6 @@ const SettingsScreen = ({ navigation }) => {
         </Text>
       </ScrollView>
 
-      {/* ===== EXIT CONFIRM MODAL ===== */}
       <Modal
         visible={exitConfirmVisible}
         transparent
@@ -696,12 +656,7 @@ const SettingsScreen = ({ navigation }) => {
         onRequestClose={cancelExit}
       >
         <View style={styles.modalOverlayConfirm}>
-          <View
-            style={[
-              styles.confirmModalCard,
-              { backgroundColor: themeColors.surface },
-            ]}
-          >
+          <View style={[styles.confirmModalCard, { backgroundColor: themeColors.surface }]}>
             <View style={styles.exitIconCircle}>
               <Ionicons name="log-out-outline" size={30} color={colors.error} />
             </View>
@@ -709,9 +664,7 @@ const SettingsScreen = ({ navigation }) => {
             <Text style={[styles.confirmModalTitle, { color: themeColors.text }]}>
               Logout App
             </Text>
-            <Text
-              style={[styles.confirmModalBody, { color: themeColors.textSecondary }]}
-            >
+            <Text style={[styles.confirmModalBody, { color: themeColors.textSecondary }]}>
               Are you sure you want to logout of RootCare?
             </Text>
 
@@ -736,7 +689,6 @@ const SettingsScreen = ({ navigation }) => {
         </View>
       </Modal>
 
-      {/* ===== FULL-SCREEN MODAL ===== */}
       {renderModal()}
     </SafeAreaView>
   );
