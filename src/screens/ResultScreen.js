@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { DISEASE_INFO } from '../constants/diseaseInfo';
 
 const { width, height } = Dimensions.get('window');
 

@@ -1,6 +1,6 @@
-// navigation/MainTabs.js
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createStackNavigator } from '@react-navigation/stack';
 import CustomTabBar from '../components/CustomTabBar';
 import HomeScreen from '../screens/HomeScreen';
 import ChatbotScreen from '../screens/ChatbotScreen';
@@ -10,19 +10,34 @@ import SettingsScreen from '../screens/SettingsScreen';
 import MarketplaceScreen from '../screens/MarketplaceScreen';
 
 const Tab = createBottomTabNavigator();
+const Stack = createStackNavigator();
+
 
 export default function MainTabs() {
   return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="MainTabs" component={TabNavigator} />
+      <Stack.Screen 
+        name="Marketplace" 
+        component={MarketplaceScreen}
+        options={{
+          presentation: 'card',
+          headerShown: false,
+        }}
+      />
+    </Stack.Navigator>
+  );
+}
+
+
+function TabNavigator() {
+  return (
     <Tab.Navigator
-      screenOptions={{ 
-        headerShown: false,
-      }}
+      screenOptions={{ headerShown: false }}
       tabBar={(props) => <CustomTabBar {...props} />}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Chatbot" component={ChatbotScreen} />
-      
-      {/* Scanner Stack - Hidden entirely (Handles Scanner + Result internally) */}
       <Tab.Screen 
         name="Scanner" 
         component={ScannerStack}
@@ -30,10 +45,7 @@ export default function MainTabs() {
           tabBarStyle: { display: 'none' },
         }}
       />
-      
       <Tab.Screen name="History" component={HistoryScreen} />
-      
-      {/* Settings - Hidden entirely */}
       <Tab.Screen 
         name="Settings" 
         component={SettingsScreen}
@@ -41,15 +53,6 @@ export default function MainTabs() {
           tabBarStyle: { display: 'none' },
         }}
       />
-      
-      {/* Marketplace - hidden from tab bar */}
-      <Tab.Screen 
-        name="Marketplace" 
-        component={MarketplaceScreen}
-        options={{
-          tabBarButton: () => null, // Hide from tab bar
-        }}
-      />
     </Tab.Navigator>
   );
-} 
+}

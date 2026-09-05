@@ -24,7 +24,7 @@ import { useFocusEffect } from '@react-navigation/native';
 const { width, height } = Dimensions.get('window');
 
 // ===== API CONFIGURATION =====
-const COMPUTER_IP = '192.168.1.19';  
+const COMPUTER_IP = '192.168.100.31'; 
 const API_URL = `http://${COMPUTER_IP}:5000/predict`;
 const HEALTH_URL = `http://${COMPUTER_IP}:5000/health`;
 
